@@ -16,9 +16,15 @@ const BASE_URL =
 
 const TRUSTED_ORIGINS = [
   BASE_URL,
+  // Always allow local development so the app is usable from localhost.
+  'http://localhost:3000',
+  'http://localhost:3001',
   ...(process.env.VERCEL_PROJECT_PRODUCTION_URL ? [`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`] : []),
   ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
   ...(process.env.V0_RUNTIME_URL ? [process.env.V0_RUNTIME_URL] : []),
+  // v0 / Vercel preview sandbox domains (wildcard).
+  'https://*.vusercontent.net',
+  'https://*.vercel.app',
 ]
 
 export const auth = betterAuth({

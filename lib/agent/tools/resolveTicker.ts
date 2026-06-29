@@ -1,6 +1,7 @@
 import { companies } from '@/lib/company-data'
 import { sanitizeCompanyInput } from '@/lib/security/sanitize'
 import { isLLMEnabled, callStructuredLLM } from '@/lib/agent/llm'
+import { fetchWithTimeout } from './http'
 import { z } from 'zod'
 
 export interface TickerResult {
@@ -14,7 +15,7 @@ export interface TickerResult {
 async function searchYahooFinance(query: string): Promise<TickerResult | null> {
   try {
     const url = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}`
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }
@@ -42,7 +43,7 @@ async function searchAlphaVantage(keywords: string): Promise<TickerResult | null
   if (!apiKey) return null
   try {
     const url = `https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords=${encodeURIComponent(keywords)}&apikey=${apiKey}`
-    const res = await fetch(url)
+    const res = await fetchWithTimeout(url)
     if (res.ok) {
       const data = await res.json()
       const match = data.bestMatches?.[0]

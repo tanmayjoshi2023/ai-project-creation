@@ -1,3 +1,5 @@
+import { fetchWithTimeout, cached } from './http'
+
 export interface WebSearchResult {
   title: string
   url: string
@@ -19,12 +21,12 @@ function cleanXmlString(str: string): string {
 async function fetchGoogleNews(query: string, maxResults = 5): Promise<WebSearchResult[]> {
   try {
     const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       },
-      next: { revalidate: 3600 }
-    })
+      next: { revalidate: 3600 },
+    } as RequestInit)
     if (!res.ok) return []
 
     const xml = await res.text()
@@ -49,42 +51,44 @@ async function fetchGoogleNews(query: string, maxResults = 5): Promise<WebSearch
     }
     return items
   } catch (error) {
-    console.error('[fetchGoogleNews] failed:', error)
+    console.warn('[fetchGoogleNews] non-fatal failure:', error instanceof Error ? error.message : error)
     return []
   }
 }
 
-export async function webSearch(query: string, maxResults = 5): Promise<WebSearchResult[]> {
+async function fetchTavily(query: string, maxResults: number): Promise<WebSearchResult[]> {
   const apiKey = process.env.TAVILY_API_KEY
-  if (apiKey) {
-    try {
-      const res = await fetch('https://api.tavily.com/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          api_key: apiKey,
-          query,
-          max_results: maxResults,
-          include_answer: false,
-        }),
-      })
-      if (res.ok) {
-        const data = await res.json()
-        return (data.results || []).map((r: { title: string; url: string; content: string; published_date?: string; score?: number }) => ({
-          title: r.title,
-          url: r.url,
-          content: r.content,
-          publishedAt: r.published_date,
-          score: r.score,
-        }))
-      }
-    } catch (error) {
-      console.error('[webSearch] Tavily failed:', error)
-    }
+  if (!apiKey) return []
+  try {
+    const res = await fetchWithTimeout('https://api.tavily.com/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ api_key: apiKey, query, max_results: maxResults, include_answer: false }),
+    })
+    if (!res.ok) return []
+    const data = await res.json()
+    return (data.results || []).map((r: { title: string; url: string; content: string; published_date?: string; score?: number }) => ({
+      title: r.title,
+      url: r.url,
+      content: r.content,
+      publishedAt: r.published_date,
+      score: r.score,
+    }))
+  } catch (error) {
+    console.warn('[webSearch] Tavily non-fatal failure:', error instanceof Error ? error.message : error)
+    return []
   }
+}
 
-  const liveNews = await fetchGoogleNews(query, maxResults)
-  if (liveNews.length > 0) return liveNews
-
-  throw new Error(`Failed to retrieve search results for query "${query}". No search provider (Tavily or Google News) yielded results.`)
+/**
+ * Web search with graceful degradation. Tries Tavily (if configured) then Google
+ * News RSS. Returns an empty array (never throws) so news/competitor agents can
+ * continue with partial data. Cached per query for 10 minutes.
+ */
+export async function webSearch(query: string, maxResults = 5): Promise<WebSearchResult[]> {
+  return cached(`search:${query}`, async () => {
+    const tavily = await fetchTavily(query, maxResults)
+    if (tavily.length > 0) return tavily
+    return fetchGoogleNews(query, maxResults)
+  })
 }
