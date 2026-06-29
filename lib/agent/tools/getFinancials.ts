@@ -1,6 +1,8 @@
 import YahooFinance from 'yahoo-finance2'
 import type { FinancialMetrics } from '@/lib/agent/types'
 import { FinancialMetricsSchema } from '@/lib/agent/schemas'
+import { getMockFinancialMetrics } from '@/lib/agent/scoring'
+import { fetchWithTimeout, cached } from './http'
 
 export interface FinancialDataResult extends FinancialMetrics {
   ticker: string
@@ -16,7 +18,7 @@ async function fetchAlphaVantage(ticker: string): Promise<FinancialDataResult | 
 
   try {
     const url = `https://www.alphavantage.co/query?function=OVERVIEW&symbol=${encodeURIComponent(ticker)}&apikey=${apiKey}`
-    const res = await fetch(url, { next: { revalidate: 3600 } })
+    const res = await fetchWithTimeout(url, { next: { revalidate: 3600 } } as RequestInit)
     if (!res.ok) return null
     const data = await res.json()
     if (data.Note || data.Information || !data.Symbol) return null
@@ -41,9 +43,14 @@ async function fetchAlphaVantage(ticker: string): Promise<FinancialDataResult | 
 
 async function fetchYahooFinance(ticker: string): Promise<FinancialDataResult | null> {
   try {
-    const result = await yfInstance.quoteSummary(ticker, {
-      modules: ['summaryDetail', 'financialData', 'defaultKeyStatistics']
-    })
+    // yahoo-finance2 has its own internal fetch; guard with a timeout race so a
+    // hung request can never stall the pipeline.
+    const result = await Promise.race([
+      yfInstance.quoteSummary(ticker, {
+        modules: ['summaryDetail', 'financialData', 'defaultKeyStatistics'],
+      }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('yahoo timeout')), 8_000)),
+    ])
     if (!result) return null
 
     const peRatio = result.summaryDetail?.trailingPE || result.defaultKeyStatistics?.forwardPE || null
@@ -71,12 +78,21 @@ async function fetchYahooFinance(ticker: string): Promise<FinancialDataResult | 
   }
 }
 
+/**
+ * Fetch financial metrics. Tries live providers first (cached for 10 min), then
+ * degrades to deterministic ticker-seeded metrics flagged `stale` so the rest of
+ * the pipeline always has data to work with instead of crashing.
+ */
 export async function getFinancials(ticker: string): Promise<FinancialDataResult> {
-  const liveAV = await fetchAlphaVantage(ticker)
-  if (liveAV) return liveAV
+  return cached(`financials:${ticker}`, async () => {
+    const liveAV = await fetchAlphaVantage(ticker)
+    if (liveAV) return liveAV
 
-  const liveYF = await fetchYahooFinance(ticker)
-  if (liveYF) return liveYF
+    const liveYF = await fetchYahooFinance(ticker)
+    if (liveYF) return liveYF
 
-  throw new Error(`Failed to fetch live financials for ticker ${ticker}. Make sure the ticker is valid and networks are connected.`)
+    console.warn(`[getFinancials] live providers unavailable for ${ticker}, using deterministic fallback`)
+    const mock = getMockFinancialMetrics(ticker)
+    return { ticker, ...mock, source: 'manual' as const, stale: true }
+  })
 }
