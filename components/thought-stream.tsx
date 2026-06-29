@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, type JSX } from 'react'
 import { Zap, TrendingUp, BarChart3, Users, AlertCircle, Sparkles, ClipboardList, Calculator, TrendingDown, Scale, ShieldCheck } from 'lucide-react'
 
 interface Thought {

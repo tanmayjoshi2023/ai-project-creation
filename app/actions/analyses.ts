@@ -11,8 +11,7 @@ import type { OrchestratorState } from '@/lib/agents/orchestrator'
 
 export async function getAnalyses(limit = 20) {
   const userId = await getUserId()
-  // Select only list-view columns — omit heavy JSON blobs (agentOutputs, hallucinations, reasoning)
-  return await db
+  const results = await db
     .select({
       id: analyses.id,
       ticker: analyses.ticker,
@@ -34,15 +33,16 @@ export async function getAnalyses(limit = 20) {
     .where(eq(analyses.userId, userId))
     .orderBy(desc(analyses.createdAt))
     .limit(limit)
+  return results
 }
 
 export async function getAnalysis(analysisId: string) {
   const userId = await getUserId()
-  return await db
+  const results = await db
     .select()
     .from(analyses)
     .where(and(eq(analyses.userId, userId), eq(analyses.id, analysisId)))
-    .then((results) => results[0] || null)
+  return results[0] || null
 }
 
 export async function getAnalysisWithAgents(analysisId: string) {
@@ -52,7 +52,7 @@ export async function getAnalysisWithAgents(analysisId: string) {
     .select()
     .from(analyses)
     .where(and(eq(analyses.userId, userId), eq(analyses.id, analysisId)))
-    .then((results) => results[0])
+    .then((results: typeof analyses.$inferSelect[]) => results[0])
 
   if (!analysis) {
     return null
@@ -86,7 +86,7 @@ export async function createAnalysis(companyId: string, ticker: string) {
   const userId = await getUserId()
   const id = uuidv4()
 
-  return await db.transaction(async (tx) => {
+  return await db.transaction(async (tx: any) => {
     const quota = await checkAnalysisQuota(userId, tx)
     if (!quota.allowed) {
       throw new Error(quota.message || 'Analysis quota exceeded')
@@ -129,12 +129,12 @@ export async function persistAnalysisResults(
 ) {
   const userId = await getUserId()
 
-  return await db.transaction(async (tx) => {
+  return await db.transaction(async (tx: any) => {
     const existing = await tx
       .select()
       .from(analyses)
       .where(and(eq(analyses.userId, userId), eq(analyses.id, analysisId)))
-      .then((rows) => rows[0])
+      .then((rows: typeof analyses.$inferSelect[]) => rows[0])
 
     if (!existing) {
       throw new Error('Analysis not found')

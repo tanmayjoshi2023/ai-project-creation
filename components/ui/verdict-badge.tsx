@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { type JSX } from 'react'
 import { TrendingUp, Minus, TrendingDown, Zap, AlertCircle, CheckCircle2 } from 'lucide-react'
 
 type Verdict = 'BUY' | 'HOLD' | 'PASS'

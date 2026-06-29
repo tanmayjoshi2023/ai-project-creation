@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
           .select()
           .from(analyses)
           .where(and(eq(analyses.id, analysisId), eq(analyses.userId, session.user.id)))
-          .then((rows) => rows[0])
+          .then((rows: typeof analyses.$inferSelect[]) => rows[0])
 
         if (existing?.status === 'completed') {
           return NextResponse.json(

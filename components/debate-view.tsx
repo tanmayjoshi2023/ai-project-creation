@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { type JSX } from 'react'
 import { Card } from '@/components/ui/card'
 import { VerdictBadge } from '@/components/ui/verdict-badge'
 import { TrendingUp, TrendingDown, Scale, Minus } from 'lucide-react'

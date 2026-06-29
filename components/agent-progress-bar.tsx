@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, type JSX } from 'react'
 import { CheckCircle2, Circle, Loader2 } from 'lucide-react'
 
 interface AgentNode {

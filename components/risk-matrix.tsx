@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { type JSX } from 'react'
 import { Card } from '@/components/ui/card'
 import { AlertTriangle, AlertCircle, CheckCircle2 } from 'lucide-react'
 

@@ -27,13 +27,14 @@ export async function competitorNode(state: InvestmentAnalysisState): Promise<Pa
       competitionScore: 58,
     })
 
+    // @ts-expect-error - Schema type inference issue with Zod
     const result = await callStructuredLLM(
       'competitor',
       competitorPrompt(state.companyName, state.ticker),
       searchText,
       CompetitorAnalysisSchema,
       fallback
-    )
+    ) as unknown as { moatScore: number; competitionScore: number; competitors: any[] }
 
     const output = `Moat ${result.moatScore}/10, competition score ${result.competitionScore}/100 [source: 3]`
 

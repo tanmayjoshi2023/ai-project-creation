@@ -37,6 +37,7 @@ interface AnalysisRecord {
   riskScore?: number | null
   opportunityScore?: number | null
   reasoning?: string | null
+  hallucinations?: string[] | null
   createdAt: Date
   agents?: AgentExecution[]
 }

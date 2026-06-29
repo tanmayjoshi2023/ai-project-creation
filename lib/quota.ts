@@ -12,7 +12,7 @@ export async function ensureSubscription(userId: string, tx?: any) {
     .select()
     .from(subscriptions)
     .where(eq(subscriptions.userId, userId))
-    .then((rows) => rows[0])
+    .then((rows: typeof subscriptions.$inferSelect[]) => rows[0])
 
   if (existing) return existing
 
