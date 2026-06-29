@@ -79,7 +79,7 @@ export async function* streamAnalysis(input: AgentInput & { userId?: string; ana
 
               if (nodeUpdate?.agents) {
                 for (const agent of nodeUpdate.agents) {
-                  queue.push({ type: 'agent' as const, data: agent as Record<string, unknown> })
+                  queue.push({ type: 'agent' as const, data: (agent as unknown) as Record<string, unknown> })
                 }
               }
             }

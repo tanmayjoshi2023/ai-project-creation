@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { AgentProgressBar } from '@/components/agent-progress-bar'
 import { ThoughtStream } from '@/components/thought-stream'
@@ -30,7 +30,7 @@ interface AgentProgress {
 interface Thought {
   id: string
   agent: string
-  type: 'research'
+  type: 'research' | 'warning'
   content: string
   timestamp: Date
 }

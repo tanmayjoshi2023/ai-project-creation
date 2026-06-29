@@ -60,7 +60,7 @@ export async function getCompany(ticker: string) {
     })
     .from(companies)
     .where(and(eq(companies.userId, userId), eq(companies.ticker, safeTicker)))
-    .then((results) => results[0] || null)
+    .then((results: typeof companies.$inferSelect[]) => results[0] || null)
 }
 
 export async function createOrUpdateCompany(

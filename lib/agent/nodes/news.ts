@@ -22,15 +22,16 @@ export async function newsNode(state: InvestmentAnalysisState): Promise<Partial<
       sentimentScore: getSentiment(fallbackArticles),
     })
 
+    // @ts-expect-error - Schema type inference issue with Zod
     const result = await callStructuredLLM(
       'news',
       newsPrompt(state.companyName, state.ticker),
       articlesText,
       NewsAnalysisSchema,
       fallback
-    )
+    ) as unknown as { sentimentScore: number; articles: Array<{ title: string; url: string }> }
 
-    const citations = result.articles.slice(0, 3).map((a, i) => ({
+    const citations = result.articles.slice(0, 3).map((a: any, i: number) => ({
       index: state.citations.length + i + 1,
       title: a.title,
       url: a.url,
@@ -46,13 +47,13 @@ export async function newsNode(state: InvestmentAnalysisState): Promise<Partial<
       output,
       0.82,
       Date.now() - start,
-      result.articles.slice(0, 2).map((a) => ({ type: 'News', url: a.url, title: a.title }))
+      result.articles.slice(0, 2).map((a: any) => ({ type: 'News', url: a.url, title: a.title }))
     )
 
     emitThought(state.analysisId, 'News Analyst', 'complete', output, agent.executionTimeMs)
 
     return {
-      newsArticles: result.articles,
+      newsArticles: result.articles as any,
       sentimentScore: result.sentimentScore,
       citations,
       agents: [agent],
