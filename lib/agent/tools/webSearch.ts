@@ -6,6 +6,54 @@ export interface WebSearchResult {
   score?: number
 }
 
+function cleanXmlString(str: string): string {
+  return str
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+}
+
+async function fetchGoogleNews(query: string, maxResults = 5): Promise<WebSearchResult[]> {
+  try {
+    const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      },
+      next: { revalidate: 3600 }
+    })
+    if (!res.ok) return []
+
+    const xml = await res.text()
+    const items: WebSearchResult[] = []
+    const matches = xml.matchAll(/<item>([\s\S]*?)<\/item>/g)
+    for (const match of matches) {
+      const content = match[1]
+      const titleMatch = content.match(/<title>([\s\S]*?)<\/title>/)
+      const linkMatch = content.match(/<link>([\s\S]*?)<\/link>/)
+      const dateMatch = content.match(/<pubDate>([\s\S]*?)<\/pubDate>/)
+
+      if (titleMatch && linkMatch) {
+        items.push({
+          title: cleanXmlString(titleMatch[1]),
+          url: cleanXmlString(linkMatch[1]),
+          content: `Latest search result about: ${query}`,
+          publishedAt: dateMatch ? new Date(dateMatch[1]).toISOString() : new Date().toISOString(),
+          score: 0.8,
+        })
+      }
+      if (items.length >= maxResults) break
+    }
+    return items
+  } catch (error) {
+    console.error('[fetchGoogleNews] failed:', error)
+    return []
+  }
+}
+
 export async function webSearch(query: string, maxResults = 5): Promise<WebSearchResult[]> {
   const apiKey = process.env.TAVILY_API_KEY
   if (apiKey) {
@@ -35,29 +83,8 @@ export async function webSearch(query: string, maxResults = 5): Promise<WebSearc
     }
   }
 
-  // Fallback mock results
-  const company = query.split(' ')[0]
-  return [
-    {
-      title: `${company} quarterly earnings beat expectations`,
-      url: `https://finance.yahoo.com/quote/${company}/news`,
-      content: `Recent coverage of ${query} indicates stable operational performance and analyst attention.`,
-      publishedAt: new Date().toISOString(),
-      score: 0.85,
-    },
-    {
-      title: `${company} faces competitive pressure in core markets`,
-      url: 'https://www.reuters.com/markets',
-      content: `Market analysts note competitive dynamics affecting ${query}.`,
-      publishedAt: new Date(Date.now() - 7 * 86400000).toISOString(),
-      score: 0.72,
-    },
-    {
-      title: `Macro outlook and ${company} sector trends`,
-      url: 'https://www.bloomberg.com/markets',
-      content: `Sector-level macro factors may influence ${query} performance.`,
-      publishedAt: new Date(Date.now() - 14 * 86400000).toISOString(),
-      score: 0.65,
-    },
-  ]
+  const liveNews = await fetchGoogleNews(query, maxResults)
+  if (liveNews.length > 0) return liveNews
+
+  throw new Error(`Failed to retrieve search results for query "${query}". No search provider (Tavily or Google News) yielded results.`)
 }

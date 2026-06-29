@@ -9,74 +9,76 @@ import { revalidatePath } from 'next/cache'
 import { v4 as uuidv4 } from 'uuid'
 import type { OrchestratorState } from '@/lib/agents/orchestrator'
 
-// Simple in-memory storage for offline demo fallback
-const offlineAnalysesStore = new Map<string, any>()
-const offlineAgentExecutionsStore = new Map<string, any[]>()
-
 export async function getAnalyses(limit = 20) {
-  try {
-    const userId = await getUserId()
-    return await db
-      .select()
-      .from(analyses)
-      .where(eq(analyses.userId, userId))
-      .orderBy(desc(analyses.createdAt))
-      .limit(limit)
-  } catch (err) {
-    console.warn("DB offline, getting in-memory analyses")
-    return Array.from(offlineAnalysesStore.values())
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-      .slice(0, limit)
-  }
+  const userId = await getUserId()
+  // Select only list-view columns — omit heavy JSON blobs (agentOutputs, hallucinations, reasoning)
+  return await db
+    .select({
+      id: analyses.id,
+      ticker: analyses.ticker,
+      companyId: analyses.companyId,
+      status: analyses.status,
+      verdict: analyses.verdict,
+      confidence: analyses.confidence,
+      summary: analyses.summary,
+      riskScore: analyses.riskScore,
+      opportunityScore: analyses.opportunityScore,
+      groundingScore: analyses.groundingScore,
+      processingTimeMs: analyses.processingTimeMs,
+      llmProvider: analyses.llmProvider,
+      llmModel: analyses.llmModel,
+      createdAt: analyses.createdAt,
+      updatedAt: analyses.updatedAt,
+    })
+    .from(analyses)
+    .where(eq(analyses.userId, userId))
+    .orderBy(desc(analyses.createdAt))
+    .limit(limit)
 }
 
 export async function getAnalysis(analysisId: string) {
-  try {
-    const userId = await getUserId()
-    return await db
-      .select()
-      .from(analyses)
-      .where(and(eq(analyses.userId, userId), eq(analyses.id, analysisId)))
-      .then((results) => results[0] || null)
-  } catch (err) {
-    console.warn("DB offline, getting in-memory analysis:", analysisId)
-    return offlineAnalysesStore.get(analysisId) || null
-  }
+  const userId = await getUserId()
+  return await db
+    .select()
+    .from(analyses)
+    .where(and(eq(analyses.userId, userId), eq(analyses.id, analysisId)))
+    .then((results) => results[0] || null)
 }
 
 export async function getAnalysisWithAgents(analysisId: string) {
-  try {
-    const userId = await getUserId()
+  const userId = await getUserId()
 
-    const analysis = await db
-      .select()
-      .from(analyses)
-      .where(and(eq(analyses.userId, userId), eq(analyses.id, analysisId)))
-      .then((results) => results[0])
+  const analysis = await db
+    .select()
+    .from(analyses)
+    .where(and(eq(analyses.userId, userId), eq(analyses.id, analysisId)))
+    .then((results) => results[0])
 
-    if (!analysis) {
-      return null
-    }
+  if (!analysis) {
+    return null
+  }
 
-    const agents = await db
-      .select()
-      .from(agentExecutions)
-      .where(eq(agentExecutions.analysisId, analysisId))
-      .orderBy(agentExecutions.createdAt)
+  const agents = await db
+    .select({
+      id: agentExecutions.id,
+      agentName: agentExecutions.agentName,
+      agentType: agentExecutions.agentType,
+      output: agentExecutions.output,
+      reasoning: agentExecutions.reasoning,
+      confidence: agentExecutions.confidence,
+      sources: agentExecutions.sources,
+      executionTimeMs: agentExecutions.executionTimeMs,
+      executionOrder: agentExecutions.executionOrder,
+      cost: agentExecutions.cost,
+      createdAt: agentExecutions.createdAt,
+    })
+    .from(agentExecutions)
+    .where(eq(agentExecutions.analysisId, analysisId))
+    .orderBy(agentExecutions.executionOrder)
 
-    return {
-      ...analysis,
-      agents,
-    }
-  } catch (err) {
-    console.warn("DB offline, getting in-memory analysis with agents:", analysisId)
-    const analysis = offlineAnalysesStore.get(analysisId)
-    if (!analysis) return null
-    const agents = offlineAgentExecutionsStore.get(analysisId) || []
-    return {
-      ...analysis,
-      agents,
-    }
+  return {
+    ...analysis,
+    agents,
   }
 }
 
@@ -84,13 +86,13 @@ export async function createAnalysis(companyId: string, ticker: string) {
   const userId = await getUserId()
   const id = uuidv4()
 
-  try {
-    const quota = await checkAnalysisQuota(userId)
+  return await db.transaction(async (tx) => {
+    const quota = await checkAnalysisQuota(userId, tx)
     if (!quota.allowed) {
       throw new Error(quota.message || 'Analysis quota exceeded')
     }
 
-    await db.insert(analyses).values({
+    await tx.insert(analyses).values({
       id,
       userId,
       companyId,
@@ -102,54 +104,19 @@ export async function createAnalysis(companyId: string, ticker: string) {
 
     revalidatePath('/')
     return { success: true, analysisId: id }
-  } catch (err) {
-    console.warn("DB offline, creating in-memory analysis:", ticker)
-    const mockRecord = {
-      id,
-      userId,
-      companyId,
-      ticker: ticker.toUpperCase(),
-      status: 'pending' as const,
-      verdict: null,
-      confidence: null,
-      summary: null,
-      reasoning: null,
-      sources: null,
-      agentOutputs: null,
-      estimatedValue: null,
-      bullArguments: null,
-      bearArguments: null,
-      riskScore: null,
-      opportunityScore: null,
-      hallucinations: null,
-      processingTimeMs: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }
-    offlineAnalysesStore.set(id, mockRecord)
-    return { success: true, analysisId: id }
-  }
+  })
 }
 
 export async function updateAnalysisStatus(analysisId: string, status: string) {
   const userId = await getUserId()
 
-  try {
-    await db
-      .update(analyses)
-      .set({
-        status: status as 'pending' | 'processing' | 'completed' | 'failed',
-        updatedAt: new Date(),
-      })
-      .where(and(eq(analyses.userId, userId), eq(analyses.id, analysisId)))
-  } catch (err) {
-    console.warn("DB offline, updating in-memory status:", analysisId)
-    const existing = offlineAnalysesStore.get(analysisId)
-    if (existing) {
-      existing.status = status
-      existing.updatedAt = new Date()
-    }
-  }
+  await db
+    .update(analyses)
+    .set({
+      status: status as 'pending' | 'processing' | 'completed' | 'failed',
+      updatedAt: new Date(),
+    })
+    .where(and(eq(analyses.userId, userId), eq(analyses.id, analysisId)))
 
   revalidatePath('/')
   return { success: true }
@@ -162,8 +129,8 @@ export async function persistAnalysisResults(
 ) {
   const userId = await getUserId()
 
-  try {
-    const existing = await db
+  return await db.transaction(async (tx) => {
+    const existing = await tx
       .select()
       .from(analyses)
       .where(and(eq(analyses.userId, userId), eq(analyses.id, analysisId)))
@@ -178,10 +145,10 @@ export async function persistAnalysisResults(
     }
 
     if (!options?.skipQuotaIncrement) {
-      await incrementAnalysisUsage(userId)
+      await incrementAnalysisUsage(userId, tx)
     }
 
-    await db
+    await tx
       .update(analyses)
       .set({
         status: 'completed',
@@ -195,14 +162,18 @@ export async function persistAnalysisResults(
         bearArguments: state.bearArguments ?? null,
         riskScore: state.riskScore ?? null,
         opportunityScore: state.opportunityScore ?? null,
+        groundingScore: state.groundingScore ?? null,
         hallucinations: state.hallucinations ?? [],
         processingTimeMs: state.totalExecutionTimeMs,
+        llmProvider: 'google',
+        llmModel: 'gemini-2.5-flash',
         updatedAt: new Date(),
       })
       .where(and(eq(analyses.userId, userId), eq(analyses.id, analysisId)))
 
-    for (const agent of state.agents) {
-      await db.insert(agentExecutions).values({
+    for (let i = 0; i < state.agents.length; i++) {
+      const agent = state.agents[i]
+      await tx.insert(agentExecutions).values({
         id: uuidv4(),
         analysisId,
         agentName: agent.agentName,
@@ -212,6 +183,12 @@ export async function persistAnalysisResults(
         confidence: agent.confidence,
         sources: agent.sources,
         executionTimeMs: agent.executionTimeMs,
+        tokenUsage: null,
+        prompt: null,
+        response: agent.output,
+        errors: null,
+        cost: null,
+        executionOrder: i + 1,
         createdAt: new Date(),
       })
     }
@@ -219,50 +196,7 @@ export async function persistAnalysisResults(
     revalidatePath('/')
     revalidatePath(`/analysis/${analysisId}`)
     return { success: true }
-  } catch (err) {
-    console.warn("DB offline, persisting to in-memory store:", analysisId)
-    const existing = offlineAnalysesStore.get(analysisId)
-    if (!existing) {
-      throw new Error('Analysis not found in offline store')
-    }
-
-    const updated = {
-      ...existing,
-      status: 'completed' as const,
-      verdict: state.verdict ?? null,
-      confidence: state.confidence ?? null,
-      summary: state.summary ?? null,
-      reasoning: JSON.stringify(state.explainability ?? {}),
-      sources: state.explainability?.sources ?? [],
-      agentOutputs: state.agents,
-      bullArguments: state.bullArguments ?? null,
-      bearArguments: state.bearArguments ?? null,
-      riskScore: state.riskScore ?? null,
-      opportunityScore: state.opportunityScore ?? null,
-      hallucinations: state.hallucinations ?? [],
-      processingTimeMs: state.totalExecutionTimeMs,
-      updatedAt: new Date(),
-    }
-    offlineAnalysesStore.set(analysisId, updated)
-
-    const mockAgentsExecs = state.agents.map((agent) => ({
-      id: uuidv4(),
-      analysisId,
-      agentName: agent.agentName,
-      agentType: agent.agentType,
-      input: agent.input,
-      output: agent.output,
-      confidence: agent.confidence ?? null,
-      sources: agent.sources ?? [],
-      executionTimeMs: agent.executionTimeMs,
-      createdAt: new Date(),
-    }))
-    offlineAgentExecutionsStore.set(analysisId, mockAgentsExecs)
-
-    revalidatePath('/')
-    revalidatePath(`/analysis/${analysisId}`)
-    return { success: true }
-  }
+  })
 }
 
 export async function updateAnalysisResults(

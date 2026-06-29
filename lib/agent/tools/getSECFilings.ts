@@ -6,34 +6,22 @@ export async function getSECFilings(ticker: string): Promise<SECFiling[]> {
       `https://efts.sec.gov/LATEST/search-index?q=${encodeURIComponent(ticker)}&forms=10-K,10-Q,8-K`,
       { headers: { 'User-Agent': 'InvestIQ Research Agent contact@investiq.app' } }
     )
-    if (res.ok) {
-      const data = await res.json()
-      const hits = data?.hits?.hits || []
-      if (hits.length > 0) {
-        return hits.slice(0, 3).map((hit: { _source: { form_type: string; file_date: string; file_url: string } }) => ({
-          formType: hit._source.form_type,
-          filingDate: hit._source.file_date,
-          url: hit._source.file_url || `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${ticker}`,
-          summary: `${hit._source.form_type} filing for ${ticker}`,
-        }))
-      }
+    if (!res.ok) {
+      throw new Error(`SEC EDGAR query returned status ${res.status}`)
     }
-  } catch {
-    // fall through to mock
+    const data = await res.json()
+    const hits = data?.hits?.hits || []
+    if (hits.length === 0) {
+      throw new Error(`No SEC filings found in EDGAR index for ticker ${ticker}`)
+    }
+    return hits.slice(0, 3).map((hit: { _source: { form_type: string; file_date: string; file_url: string } }) => ({
+      formType: hit._source.form_type,
+      filingDate: hit._source.file_date,
+      url: hit._source.file_url || `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${ticker}`,
+      summary: `${hit._source.form_type} filing for ${ticker}`,
+    }))
+  } catch (error) {
+    console.error('[getSECFilings] failed:', error)
+    throw new Error(`Failed to fetch SEC filings for ticker ${ticker}: ${error instanceof Error ? error.message : 'Unknown error'}`)
   }
-
-  return [
-    {
-      formType: '10-K',
-      filingDate: new Date(Date.now() - 90 * 86400000).toISOString().split('T')[0],
-      url: `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${ticker}`,
-      summary: `Annual report (10-K) for ${ticker}`,
-    },
-    {
-      formType: '10-Q',
-      filingDate: new Date(Date.now() - 45 * 86400000).toISOString().split('T')[0],
-      url: `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${ticker}`,
-      summary: `Quarterly report (10-Q) for ${ticker}`,
-    },
-  ]
 }

@@ -91,12 +91,12 @@ export default async function ResearchPage() {
             <p className="text-muted-foreground max-w-lg mx-auto">
               Search for any company from your dashboard to launch a full AI investment analysis.
             </p>
-            <Link href="/">
-              <Button size="lg" className="gap-2">
+            <Button size="lg" className="gap-2" nativeButton={false} render={
+              <Link href="/">
                 Go to Dashboard
                 <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
+              </Link>
+            } />
           </CardContent>
         </Card>
 

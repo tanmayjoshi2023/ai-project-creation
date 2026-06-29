@@ -64,6 +64,8 @@ export function StreamingAnalysis({
     PIPELINE_AGENTS.map((name) => ({ name, status: 'pending' as const }))
   )
   const [thoughts, setThoughts] = useState<Thought[]>([])
+  const [currentTicker, setCurrentTicker] = useState(ticker)
+  const [currentCompanyName, setCurrentCompanyName] = useState(companyName)
   const [result, setResult] = useState<{
     verdict: Verdict
     confidence: number
@@ -145,26 +147,40 @@ export function StreamingAnalysis({
           if (a.name !== agent) return a
           if (thoughtStatus === 'running') return { ...a, status: 'running' }
           if (thoughtStatus === 'complete') return { ...a, status: 'complete', duration: elapsedMs }
+          if (thoughtStatus === 'error') return { ...a, status: 'error' }
           return a
         })
       )
 
-      if (text && thoughtStatus === 'complete') {
-        setThoughts((prev) => [
-          ...prev,
-          {
-            id: `${agent}-${prev.length}`,
-            agent,
-            type: 'research',
-            content: text,
-            timestamp: new Date(),
-          },
-        ])
+      if (text) {
+        setThoughts((prev) => {
+          if (prev.some((t) => t.agent === agent && t.content === text)) {
+            return prev
+          }
+          return [
+            ...prev,
+            {
+              id: `${agent}-${thoughtStatus}-${prev.length}-${Date.now()}`,
+              agent,
+              type: thoughtStatus === 'error' ? 'warning' as const : 'research' as const,
+              content: text,
+              timestamp: new Date(),
+            },
+          ]
+        })
       }
+    }
+
+    if (event.type === 'start') {
+      const data = event.data as { ticker: string; companyName?: string }
+      if (data.ticker) setCurrentTicker(data.ticker)
+      if (data.companyName) setCurrentCompanyName(data.companyName)
     }
 
     if (event.type === 'complete') {
       const data = event.data as {
+        ticker?: string
+        companyName?: string
         verdict: Verdict
         confidence: number
         summary: string
@@ -174,6 +190,8 @@ export function StreamingAnalysis({
         riskScore?: number
       }
       setResult(data)
+      if (data.ticker) setCurrentTicker(data.ticker)
+      if (data.companyName) setCurrentCompanyName(data.companyName)
       setAgentProgress((prev) => prev.map((a) => ({ ...a, status: 'complete' as const })))
     }
 
@@ -216,8 +234,8 @@ export function StreamingAnalysis({
   return (
     <div className="space-y-6" aria-live="polite" aria-busy={isRunning}>
       <div className="space-y-2">
-        <h1 className="text-4xl font-bold text-foreground">{ticker}</h1>
-        {companyName && <p className="text-lg text-muted-foreground">{companyName}</p>}
+        <h1 className="text-4xl font-bold text-foreground">{currentTicker}</h1>
+        {currentCompanyName && <p className="text-lg text-muted-foreground">{currentCompanyName}</p>}
       </div>
 
       {error && (

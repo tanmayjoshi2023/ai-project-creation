@@ -50,12 +50,12 @@ export default async function AnalysisPage({ params }: Props) {
       <main className="container mx-auto max-w-6xl px-4 py-8">
         <div className="space-y-6">
           <div className="flex items-center gap-4">
-            <Link href="/">
-              <Button variant="ghost" size="sm" className="gap-2">
+            <Button variant="ghost" size="sm" className="gap-2" nativeButton={false} render={
+              <Link href="/">
                 <ArrowLeft className="h-4 w-4" />
                 Back
-              </Button>
-            </Link>
+              </Link>
+            } />
           </div>
 
           {isLive ? (

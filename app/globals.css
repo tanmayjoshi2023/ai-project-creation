@@ -250,6 +250,27 @@
   .animate-verdict-entrance,
   .animate-thought-slide,
   .animate-progress-ring {
-    animation: none;
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  header, footer, nav, button, .no-print, [role="navigation"], .no-print-btn {
+    display: none !important;
+  }
+  main, .container {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .card, border-2, border {
+    border-color: #ddd !important;
+    box-shadow: none !important;
   }
 }

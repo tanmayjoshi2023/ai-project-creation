@@ -61,27 +61,43 @@ export function CompanySearchAutocomplete({
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!isOpen) return
-
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault()
-        setSelectedIndex((prev) => (prev + 1) % results.length)
-        break
-      case 'ArrowUp':
-        e.preventDefault()
-        setSelectedIndex((prev) => (prev - 1 + results.length) % results.length)
-        break
-      case 'Enter':
-        e.preventDefault()
-        if (results[selectedIndex]) {
-          selectCompany(results[selectedIndex])
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      if (isOpen && results.length > 0 && results[selectedIndex]) {
+        selectCompany(results[selectedIndex])
+      } else if (query.trim()) {
+        const cleanQuery = query.trim()
+        const match = cleanQuery.match(/^([A-Z0-9.\-]+)\s*-\s*(.+)$/i)
+        if (match) {
+          selectCompany({
+            symbol: match[1].toUpperCase(),
+            name: match[2],
+            region: 'US',
+          })
+        } else {
+          const isTicker = /^[A-Z0-9.\-]{1,12}$/i.test(cleanQuery)
+          selectCompany({
+            symbol: isTicker ? cleanQuery.toUpperCase() : cleanQuery,
+            name: cleanQuery,
+            region: 'US',
+          })
         }
-        break
-      case 'Escape':
-        e.preventDefault()
-        setIsOpen(false)
-        break
+      }
+    } else if (isOpen && results.length > 0) {
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault()
+          setSelectedIndex((prev) => (prev + 1) % results.length)
+          break
+        case 'ArrowUp':
+          e.preventDefault()
+          setSelectedIndex((prev) => (prev - 1 + results.length) % results.length)
+          break
+        case 'Escape':
+          e.preventDefault()
+          setIsOpen(false)
+          break
+      }
     }
   }
 

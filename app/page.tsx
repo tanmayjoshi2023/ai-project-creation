@@ -51,12 +51,12 @@ export default async function HomePage() {
             <span className="text-xl font-bold">InvestIQ</span>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/sign-in">
-              <Button variant="ghost">Sign In</Button>
-            </Link>
-            <Link href="/sign-up">
-              <Button>Get Started</Button>
-            </Link>
+            <Button variant="ghost" nativeButton={false} render={
+              <Link href="/sign-in">Sign In</Link>
+            } />
+            <Button nativeButton={false} render={
+              <Link href="/sign-up">Get Started</Link>
+            } />
           </div>
         </div>
       </nav>
@@ -71,16 +71,14 @@ export default async function HomePage() {
             Get comprehensive investment analysis powered by 8 specialized AI agents in under 90 seconds. Make informed decisions with confidence.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-            <Link href="/sign-up">
-              <Button size="lg" className="gap-2 text-base h-12">
+            <Button size="lg" className="gap-2 text-base h-12" nativeButton={false} render={
+              <Link href="/sign-up">
                 Start Free <ArrowRight className="w-5 h-5" />
-              </Button>
-            </Link>
-            <Link href="/sign-in">
-              <Button size="lg" variant="outline" className="text-base h-12">
-                Sign In
-              </Button>
-            </Link>
+              </Link>
+            } />
+            <Button size="lg" variant="outline" className="text-base h-12" nativeButton={false} render={
+              <Link href="/sign-in">Sign In</Link>
+            } />
           </div>
         </div>
 
@@ -161,11 +159,11 @@ export default async function HomePage() {
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Start your free analysis today and see how AI can transform your investment decisions.
           </p>
-          <Link href="/sign-up">
-            <Button size="lg" className="gap-2 text-base h-12">
+          <Button size="lg" className="gap-2 text-base h-12" nativeButton={false} render={
+            <Link href="/sign-up">
               Get Started Free <ArrowRight className="w-5 h-5" />
-            </Button>
-          </Link>
+            </Link>
+          } />
         </div>
       </section>
 

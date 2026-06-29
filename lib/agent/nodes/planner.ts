@@ -4,9 +4,11 @@ import { PlannerOutputSchema } from '@/lib/agent/schemas'
 import { plannerPrompt, wrapUserInput } from '@/lib/agent/prompts'
 import { resolveTicker } from '@/lib/agent/tools'
 import { makeAgentOutput, makeThought, stateInput } from './helpers'
+import { emitThought } from '@/lib/agent/event-bus'
 
 export async function plannerNode(state: InvestmentAnalysisState): Promise<Partial<InvestmentAnalysisState>> {
   const start = Date.now()
+  emitThought(state.analysisId, 'Planner', 'running', 'Building research plan...')
   const resolved = await resolveTicker(state.ticker || state.companyName)
 
   const fallback = () => ({
@@ -43,6 +45,8 @@ export async function plannerNode(state: InvestmentAnalysisState): Promise<Parti
     0.95,
     Date.now() - start
   )
+
+  emitThought(state.analysisId, 'Planner', 'complete', agent.output, agent.executionTimeMs)
 
   return {
     ticker: result.ticker,

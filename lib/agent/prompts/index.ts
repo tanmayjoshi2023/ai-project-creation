@@ -43,16 +43,20 @@ OUTPUT: JSON matching BearCaseSchema`
 
 export function judgePrompt(companyName: string, ticker: string, bullCase: string, bearCase: string, compositeScore: number, riskTolerance: string): string {
   return `ROLE: You are an investment committee chair — experienced, balanced, decisive.
-TASK: Evaluate Bull and Bear cases for ${companyName} (${ticker}) and deliver a verdict.
-COMPOSITE SCORE: ${compositeScore}/100
-RISK TOLERANCE: ${riskTolerance}
-TIE-BREAKING: Default to HOLD when evidence is evenly matched.
-THRESHOLDS (moderate): BUY if composite > 70, HOLD if 45-70, PASS if < 45.
-BULL CASE:
+TASK: Perform a deep qualitative and quantitative synthesis of the research and deliver an investment verdict: BUY, HOLD, or PASS.
+CRITICAL INSTRUCTIONS:
+- Do NOT simply map the composite score to a threshold. You must evaluate the qualitative strength of the arguments.
+- Analyze the risk tolerance (${riskTolerance}):
+  * conservative: heavily weight the Bear Case, demand exceptional Financial quality.
+  * moderate: balance risk and reward evenly.
+  * aggressive: value high growth, market opportunity, and upside potential over near-term volatility.
+- The composite score is ${compositeScore}/100. Use this as a reference, but override it if the arguments or news sentiment suggest a stronger/weaker thesis.
+- Provide a detailed reasoning explaining the exact trade-offs.
+BULL CASE EVIDENCE:
 ${bullCase}
-BEAR CASE:
+BEAR CASE EVIDENCE:
 ${bearCase}
-OUTPUT: JSON matching VerdictSchema. confidenceScore must not exceed 95.`
+OUTPUT: Respond with a single JSON object matching VerdictSchema (keys: verdict, confidenceScore, reasoning, bullPointsUsed, bearPointsUsed, contestedPoints).`
 }
 
 export function newsPrompt(companyName: string, ticker: string, articles: string): string {

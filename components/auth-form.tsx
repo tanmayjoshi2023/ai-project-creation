@@ -45,18 +45,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       }
 
       setSuccess(true)
-
-      // Wait until the browser has a valid session cookie before redirecting
-      for (let attempt = 0; attempt < 15; attempt++) {
-        const session = await authClient.getSession()
-        if (session.data?.user) {
-          window.location.href = '/'
-          return
-        }
-        await new Promise((resolve) => setTimeout(resolve, 200))
-      }
-
-      throw new Error('Session could not be established. Please try signing in again.')
+      window.location.href = '/'
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Authentication failed'
       setError(message)

@@ -50,45 +50,40 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
 
             <nav className="hidden md:flex items-center gap-1">
               {navLinks.map((link) => (
-                <Link key={link.href} href={link.href}>
-                  <Button
-                    variant={pathname === link.href ? 'secondary' : 'ghost'}
-                    size="sm"
-                    className="text-sm"
-                  >
-                    {link.label}
-                  </Button>
-                </Link>
+                <Button
+                  key={link.href}
+                  variant={pathname === link.href ? 'secondary' : 'ghost'}
+                  size="sm"
+                  className="text-sm"
+                  nativeButton={false}
+                  render={<Link href={link.href}>{link.label}</Link>}
+                />
               ))}
             </nav>
           </div>
 
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-2">
-                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                  <span className="text-xs font-semibold">
-                    {(user.name || user.email).charAt(0).toUpperCase()}
+            <DropdownMenuTrigger
+              render={
+                <Button variant="ghost" className="gap-2">
+                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                    <span className="text-xs font-semibold">
+                      {(user.name || user.email).charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <span className="hidden sm:inline text-sm max-w-[160px] truncate">
+                    {user.name || user.email}
                   </span>
-                </div>
-                <span className="hidden sm:inline text-sm max-w-[160px] truncate">
-                  {user.name || user.email}
-                </span>
-              </Button>
-            </DropdownMenuTrigger>
+                </Button>
+              }
+            />
             <DropdownMenuContent align="end">
               <DropdownMenuItem disabled className="text-xs text-muted-foreground">
                 {user.email}
               </DropdownMenuItem>
-              <DropdownMenuItem asChild className="md:hidden">
-                <Link href="/">Dashboard</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild className="md:hidden">
-                <Link href="/compare">Compare</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild className="md:hidden">
-                <Link href="/research">Research</Link>
-              </DropdownMenuItem>
+              <DropdownMenuItem className="md:hidden" render={<Link href="/">Dashboard</Link>} />
+              <DropdownMenuItem className="md:hidden" render={<Link href="/compare">Compare</Link>} />
+              <DropdownMenuItem className="md:hidden" render={<Link href="/research">Research</Link>} />
               <DropdownMenuItem onClick={handleLogout}>Sign out</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

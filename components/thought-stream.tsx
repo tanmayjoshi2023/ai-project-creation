@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react'
-import { Zap, TrendingUp, BarChart3, Users, AlertCircle, Sparkles } from 'lucide-react'
+import { Zap, TrendingUp, BarChart3, Users, AlertCircle, Sparkles, ClipboardList, Calculator, TrendingDown, Scale, ShieldCheck } from 'lucide-react'
 
 interface Thought {
   id: string
@@ -16,12 +16,15 @@ interface ThoughtStreamProps {
 }
 
 const agentIcons: Record<string, React.ReactNode> = {
-  'Data Analyst': <BarChart3 className="w-4 h-4" />,
-  'News Agent': <Zap className="w-4 h-4" />,
-  'Sentiment': <TrendingUp className="w-4 h-4" />,
-  'Competitor': <Users className="w-4 h-4" />,
-  'Risk': <AlertCircle className="w-4 h-4" />,
-  'Insight': <Sparkles className="w-4 h-4" />,
+  'Planner': <ClipboardList className="w-4 h-4" />,
+  'Financial Analyst': <BarChart3 className="w-4 h-4" />,
+  'News Analyst': <Zap className="w-4 h-4" />,
+  'Competitor Analyst': <Users className="w-4 h-4" />,
+  'Scoring Engine': <Calculator className="w-4 h-4" />,
+  'Bull Case': <TrendingUp className="w-4 h-4" />,
+  'Bear Case': <TrendingDown className="w-4 h-4" />,
+  'Judge': <Scale className="w-4 h-4" />,
+  'Verifier': <ShieldCheck className="w-4 h-4" />,
 }
 
 export function ThoughtStream({

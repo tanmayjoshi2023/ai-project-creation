@@ -9,53 +9,58 @@ import { revalidatePath } from 'next/cache'
 import { v4 as uuidv4 } from 'uuid'
 
 export async function getCompanies() {
-  try {
-    const userId = await getUserId()
-    return await db
-      .select()
-      .from(companies)
-      .where(eq(companies.userId, userId))
-      .orderBy(companies.createdAt)
-  } catch (err) {
-    console.warn("DB offline, getting mock companies list")
-    return []
-  }
+  const userId = await getUserId()
+  return await db
+    .select({
+      id: companies.id,
+      ticker: companies.ticker,
+      name: companies.name,
+      sector: companies.sector,
+      industry: companies.industry,
+      country: companies.country,
+      exchange: companies.exchange,
+      currency: companies.currency,
+      logo: companies.logo,
+      website: companies.website,
+      marketCap: companies.marketCap,
+      peRatio: companies.peRatio,
+      createdAt: companies.createdAt,
+      updatedAt: companies.updatedAt,
+    })
+    .from(companies)
+    .where(eq(companies.userId, userId))
+    .orderBy(companies.createdAt)
 }
 
 export async function getCompany(ticker: string) {
-  try {
-    const userId = await getUserId()
-    return await db
-      .select()
-      .from(companies)
-      .where(and(eq(companies.userId, userId), eq(companies.ticker, ticker)))
-      .then((results) => results[0] || null)
-  } catch (err) {
-    console.warn("DB offline, getting mock company:", ticker)
-    const { companies: mockCompanies } = require('@/lib/company-data')
-    const comp = mockCompanies.find((c: any) => c.ticker === ticker.toUpperCase())
-    if (comp) {
-      return {
-        id: `mock-company-${ticker.toUpperCase()}`,
-        userId: 'offline-user-id',
-        ticker: ticker.toUpperCase(),
-        name: comp.name,
-        sector: comp.sector,
-        industry: null,
-        country: null,
-        website: null,
-        description: null,
-        marketCap: null,
-        peRatio: null,
-        bookValue: null,
-        epsLatest: null,
-        revenueLatest: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }
-    }
-    return null
-  }
+  const userId = await getUserId()
+  const safeTicker = sanitizeTicker(ticker)
+  return await db
+    .select({
+      id: companies.id,
+      ticker: companies.ticker,
+      name: companies.name,
+      sector: companies.sector,
+      industry: companies.industry,
+      country: companies.country,
+      exchange: companies.exchange,
+      currency: companies.currency,
+      logo: companies.logo,
+      website: companies.website,
+      description: companies.description,
+      marketCap: companies.marketCap,
+      peRatio: companies.peRatio,
+      bookValue: companies.bookValue,
+      epsLatest: companies.epsLatest,
+      revenueLatest: companies.revenueLatest,
+      lastSynced: companies.lastSynced,
+      externalIds: companies.externalIds,
+      createdAt: companies.createdAt,
+      updatedAt: companies.updatedAt,
+    })
+    .from(companies)
+    .where(and(eq(companies.userId, userId), eq(companies.ticker, safeTicker)))
+    .then((results) => results[0] || null)
 }
 
 export async function createOrUpdateCompany(
@@ -67,6 +72,9 @@ export async function createOrUpdateCompany(
     country?: string | null
     website?: string | null
     description?: string | null
+    exchange?: string | null
+    currency?: string | null
+    logo?: string | null
     marketCap?: number | null
     peRatio?: number | null
     bookValue?: number | null
@@ -75,65 +83,72 @@ export async function createOrUpdateCompany(
   }
 ) {
   const userId = await getUserId()
-  const id = uuidv4()
   const safeTicker = sanitizeTicker(ticker)
   const safeName = sanitizeCompanyInput(data.name)
+  const id = uuidv4()
+  const now = new Date()
 
-  try {
-    const existing = await getCompany(safeTicker)
-
-    if (existing && !existing.id.startsWith('mock-company-')) {
-      await db
-        .update(companies)
-        .set({
-          ...data,
-          name: safeName,
-          updatedAt: new Date(),
-        })
-        .where(and(eq(companies.userId, userId), eq(companies.ticker, safeTicker)))
-
-      revalidatePath('/')
-      return { success: true, ticker: safeTicker, companyId: existing.id }
-    } else {
-      await db.insert(companies).values({
-        id,
-        userId,
-        ticker: safeTicker,
+  // Atomic upsert — eliminates select-then-insert race condition.
+  // ON CONFLICT (userId, ticker) DO UPDATE SET ...
+  const [result] = await db
+    .insert(companies)
+    .values({
+      id,
+      userId,
+      ticker: safeTicker,
+      name: safeName,
+      sector: data.sector ?? null,
+      industry: data.industry ?? null,
+      country: data.country ?? null,
+      exchange: data.exchange ?? null,
+      currency: data.currency ?? null,
+      logo: data.logo ?? null,
+      website: data.website ?? null,
+      description: data.description ?? null,
+      marketCap: data.marketCap ?? null,
+      peRatio: data.peRatio ?? null,
+      bookValue: data.bookValue ?? null,
+      epsLatest: data.epsLatest ?? null,
+      revenueLatest: data.revenueLatest ?? null,
+      lastSynced: now,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .onConflictDoUpdate({
+      target: [companies.userId, companies.ticker],
+      set: {
         name: safeName,
-        sector: data.sector,
-        industry: data.industry,
-        country: data.country,
-        website: data.website,
-        description: data.description,
-        marketCap: data.marketCap,
-        peRatio: data.peRatio,
-        bookValue: data.bookValue,
-        epsLatest: data.epsLatest,
-        revenueLatest: data.revenueLatest,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-    }
+        sector: data.sector ?? null,
+        industry: data.industry ?? null,
+        country: data.country ?? null,
+        exchange: data.exchange ?? null,
+        currency: data.currency ?? null,
+        logo: data.logo ?? null,
+        website: data.website ?? null,
+        description: data.description ?? null,
+        marketCap: data.marketCap ?? null,
+        peRatio: data.peRatio ?? null,
+        bookValue: data.bookValue ?? null,
+        epsLatest: data.epsLatest ?? null,
+        revenueLatest: data.revenueLatest ?? null,
+        lastSynced: now,
+        updatedAt: now,
+      },
+    })
+    .returning({ id: companies.id, ticker: companies.ticker })
 
-    revalidatePath('/')
-    return { success: true, ticker: safeTicker, companyId: id }
-  } catch (error) {
-    console.warn("DB offline, mock registering company:", safeTicker)
-    return { success: true, ticker: safeTicker, companyId: `mock-company-${safeTicker}` }
-  }
+  revalidatePath('/')
+  return { success: true, ticker: result.ticker, companyId: result.id }
 }
 
 export async function deleteCompany(ticker: string) {
   const userId = await getUserId()
+  const safeTicker = sanitizeTicker(ticker)
 
-  try {
-    await db
-      .delete(companies)
-      .where(and(eq(companies.userId, userId), eq(companies.ticker, ticker)))
+  await db
+    .delete(companies)
+    .where(and(eq(companies.userId, userId), eq(companies.ticker, safeTicker)))
 
-    revalidatePath('/')
-    return { success: true }
-  } catch (error) {
-    throw new Error(`Failed to delete company: ${error instanceof Error ? error.message : 'Unknown error'}`)
-  }
+  revalidatePath('/')
+  return { success: true }
 }

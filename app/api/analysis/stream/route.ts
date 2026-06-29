@@ -8,7 +8,8 @@ import { db } from '@/lib/db'
 import { analyses } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { persistAnalysisResults } from '@/app/actions/analyses'
-import type { OrchestratorState } from '@/lib/agents/orchestrator'
+import { streamAnalysis, type OrchestratorState } from '@/lib/agents/orchestrator'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,6 +20,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
         { status: 401 }
+      )
+    }
+
+    // Rate limit: max 10 analysis streams per minute per user
+    const rateLimit = checkRateLimit(`stream:${session.user.id}`, { limit: 10, windowMs: 60_000 })
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { success: false, error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests. Please wait before starting another analysis.' } },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(Math.ceil((rateLimit.resetAtMs - Date.now()) / 1000)),
+            'X-RateLimit-Limit': '10',
+            'X-RateLimit-Remaining': '0',
+          }
+        }
       )
     }
 
@@ -83,7 +100,7 @@ export async function POST(request: NextRequest) {
         }
 
         try {
-          for await (const event of streamAnalysis({ ticker, companyName, sector, })) {
+          for await (const event of streamAnalysis({ ticker, companyName, sector, analysisId })) {
             emit(event)
             if (event.type === 'complete') {
               finalState = event.data as OrchestratorState

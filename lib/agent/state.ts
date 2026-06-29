@@ -74,6 +74,7 @@ export const InvestmentAnalysisAnnotation = Annotation.Root({
   companyName: Annotation<string>,
   ticker: Annotation<string>,
   userId: Annotation<string>,
+  analysisId: Annotation<string>,
   riskTolerance: Annotation<RiskTolerance>,
 
   // Planner output
@@ -162,6 +163,7 @@ export function createInitialState(input: {
   userId?: string
   sector?: string
   riskTolerance?: RiskTolerance
+  analysisId?: string
 }): Partial<InvestmentAnalysisState> {
   return {
     ticker: input.ticker.toUpperCase(),
@@ -169,6 +171,7 @@ export function createInitialState(input: {
     userId: input.userId || 'anonymous',
     riskTolerance: input.riskTolerance || 'moderate',
     sector: input.sector || 'Unknown',
+    analysisId: input.analysisId || `offline-${Date.now()}`,
     financialMetrics: null,
     financialScore: 0,
     marketScore: 0,

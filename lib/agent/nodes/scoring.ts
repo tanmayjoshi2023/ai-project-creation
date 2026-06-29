@@ -2,10 +2,12 @@ import type { InvestmentAnalysisState } from '@/lib/agent/state'
 import { calculateFinancialScore, calculateCompositeScore, WEIGHTS } from '@/lib/agent/scoring'
 import type { ExplainabilityPanel } from '@/lib/agent/types'
 import { makeAgentOutput, makeThought, stateInput } from './helpers'
+import { emitThought } from '@/lib/agent/event-bus'
 
 /** Deterministic scoring engine — Bible Vol 7 */
 export async function scoringNode(state: InvestmentAnalysisState): Promise<Partial<InvestmentAnalysisState>> {
   const start = Date.now()
+  emitThought(state.analysisId, 'Scoring Engine', 'running', 'Computing deterministic scores...')
   const input = stateInput(state)
 
   const metrics = state.financialMetrics
@@ -32,6 +34,8 @@ export async function scoringNode(state: InvestmentAnalysisState): Promise<Parti
   const output = `Composite: ${scores.composite}/100 | Financial ${scores.financial} | Market ${scores.market} | Sentiment ${scores.sentiment} | Competition ${scores.competition} | Risk ${scores.risk}`
 
   const agent = makeAgentOutput('Scoring Engine', 'scoring', input, output, 1, Date.now() - start)
+
+  emitThought(state.analysisId, 'Scoring Engine', 'complete', output, agent.executionTimeMs)
 
   return {
     financialScore: scores.financial,

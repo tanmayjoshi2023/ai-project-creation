@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runAnalysis } from '@/lib/agent/runner'
 import { getSession } from '@/lib/auth-helpers'
-import { db } from '@/lib/db'
 import { companies } from '@/lib/company-data'
 import { createOrUpdateCompany } from '@/app/actions/companies'
 import { createAnalysis, persistAnalysisResults } from '@/app/actions/analyses'
 import { sanitizeTicker } from '@/lib/security/sanitize'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,6 +16,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
         { status: 401 }
+      )
+    }
+
+    // Rate limit: max 3 comparisons per minute (expensive — runs 2 full analyses)
+    const rateLimit = checkRateLimit(`compare:${session.user.id}`, { limit: 3, windowMs: 60_000 })
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { success: false, error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Too many comparisons. Please wait before running another.' } },
+        {
+          status: 429,
+          headers: { 'Retry-After': String(Math.ceil((rateLimit.resetAtMs - Date.now()) / 1000)) }
+        }
       )
     }
 

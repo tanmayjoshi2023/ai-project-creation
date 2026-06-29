@@ -1,10 +1,7 @@
-/**
- * LangGraph runner — streams node updates as SSE events
- * Engineering Bible Vol 13 §13.2 + Framework Analysis Agent §RULE 05
- */
 import { getResearchGraph } from './graph'
 import { createInitialState, type InvestmentAnalysisState } from './state'
 import type { AgentInput, OrchestratorState } from './types'
+import { AsyncQueue, activeQueues } from './event-bus'
 
 export function stateToOrchestratorResult(state: InvestmentAnalysisState): OrchestratorState {
   return {
@@ -33,14 +30,22 @@ export async function runAnalysis(input: AgentInput & { userId?: string }): Prom
   return stateToOrchestratorResult(finalState)
 }
 
-export async function* streamAnalysis(input: AgentInput & { userId?: string }) {
+export async function* streamAnalysis(input: AgentInput & { userId?: string; analysisId?: string }) {
   const graph = getResearchGraph()
   const initial = createInitialState(input)
+
+  // Ensure analysisId is populated
+  const analysisId = initial.analysisId || `offline-${Date.now()}`
+  initial.analysisId = analysisId
+
+  const queue = new AsyncQueue<any>()
+  activeQueues.set(analysisId, queue)
 
   yield {
     type: 'start' as const,
     data: {
       ticker: input.ticker,
+      companyName: input.companyName,
       agents: [
         'Planner',
         'Financial Analyst',
@@ -52,53 +57,66 @@ export async function* streamAnalysis(input: AgentInput & { userId?: string }) {
         'Judge',
         'Verifier',
       ],
-      llmEnabled: Boolean(process.env.ANTHROPIC_API_KEY),
+      llmEnabled: Boolean(process.env.GEMINI_API_KEY),
     },
   }
 
-  try {
-    let finalState: InvestmentAnalysisState | null = null
+  let finalState: InvestmentAnalysisState | null = null
 
-    const stream = await graph.stream(initial, { streamMode: ['updates', 'values'] })
+  // Run graph stream in the background
+  graph.stream(initial, { streamMode: ['updates', 'values'] })
+    .then(async (stream) => {
+      for await (const chunk of stream) {
+        if (Array.isArray(chunk) && chunk.length === 2) {
+          const [mode, data] = chunk as [string, unknown]
 
-    for await (const chunk of stream) {
-      // Multi-mode stream yields [mode, data] tuples
-      if (Array.isArray(chunk) && chunk.length === 2) {
-        const [mode, data] = chunk as [string, unknown]
+          if (mode === 'updates' && data && typeof data === 'object') {
+            const update = data as Record<string, Partial<InvestmentAnalysisState>>
+            
+            // Loop over all keys to process parallel agent outputs correctly
+            for (const nodeName of Object.keys(update)) {
+              const nodeUpdate = update[nodeName]
 
-        if (mode === 'updates' && data && typeof data === 'object') {
-          const update = data as Record<string, Partial<InvestmentAnalysisState>>
-          const nodeName = Object.keys(update)[0]
-          const nodeUpdate = update[nodeName]
-
-          if (nodeUpdate?.thoughtEvents) {
-            for (const thought of nodeUpdate.thoughtEvents) {
-              yield { type: 'thought' as const, data: thought as Record<string, unknown> }
+              if (nodeUpdate?.agents) {
+                for (const agent of nodeUpdate.agents) {
+                  queue.push({ type: 'agent' as const, data: agent as Record<string, unknown> })
+                }
+              }
             }
           }
 
-          if (nodeUpdate?.agents) {
-            for (const agent of nodeUpdate.agents) {
-              yield { type: 'agent' as const, data: agent as Record<string, unknown> }
-            }
+          if (mode === 'values') {
+            finalState = data as InvestmentAnalysisState
           }
-        }
-
-        if (mode === 'values') {
-          finalState = data as InvestmentAnalysisState
         }
       }
-    }
 
-    if (!finalState) {
-      throw new Error('Pipeline completed without final state')
-    }
+      if (finalState) {
+        queue.push({ type: 'complete' as const, data: stateToOrchestratorResult(finalState) })
+      } else {
+        queue.push({ type: 'error' as const, data: { message: 'Pipeline completed without final state' } })
+      }
+      queue.close()
+    })
+    .catch((err) => {
+      queue.push({
+        type: 'error' as const,
+        data: { message: err instanceof Error ? err.message : 'Analysis pipeline failed' },
+      })
+      queue.close()
+    })
+    .finally(() => {
+      // Clean up after small buffer window to ensure delivery
+      setTimeout(() => {
+        activeQueues.delete(analysisId)
+      }, 5000)
+    })
 
-    yield { type: 'complete' as const, data: stateToOrchestratorResult(finalState) }
-  } catch (error) {
-    yield {
-      type: 'error' as const,
-      data: { message: error instanceof Error ? error.message : 'Analysis pipeline failed' },
+  try {
+    for await (const event of queue) {
+      yield event
     }
+  } finally {
+    activeQueues.delete(analysisId)
   }
 }

@@ -11,6 +11,8 @@ import { RiskMatrix } from '@/components/risk-matrix'
 import { ExplainabilityPanelComponent } from '@/components/explainability-panel'
 import { Disclaimer } from '@/components/disclaimer'
 import type { ExplainabilityPanel, Verdict } from '@/lib/agent/types'
+import { Button } from '@/components/ui/button'
+import { Download } from 'lucide-react'
 
 interface AgentExecution {
   id: string
@@ -166,28 +168,40 @@ export function AnalysisDetailView({ analysis, companyName }: AnalysisDetailView
           {companyName && <p className="text-lg text-muted-foreground">{companyName}</p>}
         </div>
 
-        {/* View Mode Toggle */}
-        <div className="inline-flex rounded-lg border border-border p-1 bg-muted/40">
-          <button
-            onClick={() => setViewMode('standard')}
-            className={`px-4 py-2 text-sm font-semibold rounded-md transition-all duration-200 ${
-              viewMode === 'standard'
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+        <div className="flex items-center gap-3 no-print">
+          {/* View Mode Toggle */}
+          <div className="inline-flex rounded-lg border border-border p-1 bg-muted/40">
+            <button
+              onClick={() => setViewMode('standard')}
+              className={`px-4 py-2 text-sm font-semibold rounded-md transition-all duration-200 ${
+                viewMode === 'standard'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Standard View
+            </button>
+            <button
+              onClick={() => setViewMode('debate')}
+              className={`px-4 py-2 text-sm font-semibold rounded-md transition-all duration-200 ${
+                viewMode === 'debate'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Debate Arena
+            </button>
+          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 h-9 border-muted"
+            onClick={() => window.print()}
           >
-            Standard View
-          </button>
-          <button
-            onClick={() => setViewMode('debate')}
-            className={`px-4 py-2 text-sm font-semibold rounded-md transition-all duration-200 ${
-              viewMode === 'debate'
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Debate Arena
-          </button>
+            <Download className="h-4 w-4" />
+            <span>Export Report</span>
+          </Button>
         </div>
       </div>
 
@@ -211,6 +225,8 @@ export function AnalysisDetailView({ analysis, companyName }: AnalysisDetailView
               verdict={verdictType}
               confidence={confidencePct}
               summary={analysis.summary || 'Analysis complete.'}
+              explainability={explainability}
+              hallucinations={analysis.hallucinations}
             />
           )}
 

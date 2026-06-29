@@ -11,6 +11,10 @@ function getPool(): Pool {
   if (!poolInstance) {
     poolInstance = new Pool({
       connectionString,
+      connectionTimeoutMillis: 10000, // 10s — allow Neon serverless cold start
+      idleTimeoutMillis: 30000,       // Release idle connections after 30s
+      max: 5,                         // Cap connections for serverless environments
+      ssl: connectionString.includes('neon.tech') ? { rejectUnauthorized: false } : undefined,
     })
   }
   return poolInstance
@@ -25,25 +29,58 @@ function getDb() {
   return dbInstance
 }
 
-// For backward compatibility, export the getters as direct exports
-export { getPool as pool, getDb as db }
+const dbProxy = new Proxy(getDb, {
+  get(target, prop, receiver) {
+    const instance = getDb()
+    const value = Reflect.get(instance, prop, receiver)
+    if (typeof value === 'function') {
+      return function(this: any, ...args: any[]) {
+        const start = Date.now()
+        try {
+          const result = value.apply(this === receiver ? instance : this, args)
+          if (result instanceof Promise) {
+            return result.then((res) => {
+              const duration = Date.now() - start
+              if (duration > 1000) {
+                console.warn(`[SLOW QUERY] Method '${String(prop)}' took ${duration}ms`)
+              }
+              return res
+            }).catch((err) => {
+              console.error(`[DATABASE ERROR] Method '${String(prop)}' failed after ${Date.now() - start}ms:`, err)
+              throw err
+            })
+          }
+          return result
+        } catch (err) {
+          console.error(`[DATABASE ERROR] Method '${String(prop)}' failed synchronously:`, err)
+          throw err
+        }
+      }
+    }
+    return value
+  },
+  apply(target, thisArg, argumentsList) {
+    return getDb()
+  }
+}) as any
 
-let isDbOnlineCached: boolean | null = null
+// For backward compatibility, export the getters as direct exports
+export { getPool as pool, dbProxy as db }
 
 export async function checkDbConnection(): Promise<boolean> {
-  if (isDbOnlineCached !== null) return isDbOnlineCached
+  let client: any = null
   try {
     const p = getPool()
-    const client = await Promise.race([
-      p.connect(),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Timeout')), 1000))
-    ])
-    client.release()
-    isDbOnlineCached = true
+    client = await p.connect()
     return true
   } catch (err) {
-    console.warn('Database offline, entering offline fallback mode:', err)
-    isDbOnlineCached = false
+    console.warn('Database offline check failed:', err)
     return false
+  } finally {
+    if (client) {
+      try {
+        client.release()
+      } catch {}
+    }
   }
 }

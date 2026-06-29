@@ -1,8 +1,7 @@
 import { pgTable, text, timestamp, boolean, varchar, integer, real, jsonb, index, unique, pgEnum } from 'drizzle-orm/pg-core'
-import { sql } from 'drizzle-orm'
 
 // ============================================================================
-// BETTER AUTH TABLES (Required - Do not modify)
+// BETTER AUTH TABLES (Required - Do not modify base structure, only add FKs/Indexes)
 // ============================================================================
 
 export const user = pgTable('user', {
@@ -23,14 +22,17 @@ export const session = pgTable('session', {
   updatedAt: timestamp('updatedAt').notNull(),
   ipAddress: text('ipAddress'),
   userAgent: text('userAgent'),
-  userId: text('userId').notNull(),
-})
+  userId: text('userId').notNull().references(() => user.id, { onDelete: 'cascade' }),
+}, (table) => [
+  index('idx_session_userId').on(table.userId),
+  index('idx_session_token').on(table.token),
+])
 
 export const account = pgTable('account', {
   id: text('id').primaryKey(),
   accountId: text('accountId').notNull(),
   providerId: text('providerId').notNull(),
-  userId: text('userId').notNull(),
+  userId: text('userId').notNull().references(() => user.id, { onDelete: 'cascade' }),
   accessToken: text('accessToken'),
   refreshToken: text('refreshToken'),
   idToken: text('idToken'),
@@ -40,7 +42,9 @@ export const account = pgTable('account', {
   password: text('password'),
   createdAt: timestamp('createdAt').notNull(),
   updatedAt: timestamp('updatedAt').notNull(),
-})
+}, (table) => [
+  index('idx_account_userId').on(table.userId),
+])
 
 export const verification = pgTable('verification', {
   id: text('id').primaryKey(),
@@ -75,12 +79,15 @@ export const companies = pgTable(
   'companies',
   {
     id: text('id').primaryKey(),
-    userId: text('userId').notNull(),
+    userId: text('userId').notNull().references(() => user.id, { onDelete: 'cascade' }),
     ticker: varchar('ticker', { length: 20 }).notNull(),
     name: text('name').notNull(),
     sector: text('sector'),
     industry: text('industry'),
+    exchange: text('exchange'),
     country: text('country'),
+    currency: text('currency'),
+    logo: text('logo'),
     website: text('website'),
     description: text('description'),
     marketCap: real('marketCap'),
@@ -88,6 +95,8 @@ export const companies = pgTable(
     bookValue: real('bookValue'),
     epsLatest: real('epsLatest'),
     revenueLatest: real('revenueLatest'),
+    lastSynced: timestamp('lastSynced').defaultNow(),
+    externalIds: jsonb('externalIds'),
     createdAt: timestamp('createdAt').notNull().defaultNow(),
     updatedAt: timestamp('updatedAt').notNull().defaultNow(),
   },
@@ -103,8 +112,8 @@ export const analyses = pgTable(
   'analyses',
   {
     id: text('id').primaryKey(),
-    userId: text('userId').notNull(),
-    companyId: text('companyId').notNull(),
+    userId: text('userId').notNull().references(() => user.id, { onDelete: 'cascade' }),
+    companyId: text('companyId').notNull().references(() => companies.id, { onDelete: 'cascade' }),
     ticker: varchar('ticker', { length: 20 }).notNull(),
     status: analysisStatusEnum('status').notNull().default('pending'),
     verdict: verdictEnum('verdict'),
@@ -118,8 +127,11 @@ export const analyses = pgTable(
     bearArguments: text('bearArguments'),
     riskScore: real('riskScore'), // 0-100
     opportunityScore: real('opportunityScore'), // 0-100
+    groundingScore: real('groundingScore'), // 0-1
     hallucinations: jsonb('hallucinations'), // Any detected hallucinations
     processingTimeMs: integer('processingTimeMs'),
+    llmProvider: varchar('llmProvider', { length: 50 }),
+    llmModel: varchar('llmModel', { length: 50 }),
     createdAt: timestamp('createdAt').notNull().defaultNow(),
     updatedAt: timestamp('updatedAt').notNull().defaultNow(),
   },
@@ -128,6 +140,7 @@ export const analyses = pgTable(
     index('idx_companyId_analysis').on(table.companyId),
     index('idx_ticker_analysis').on(table.ticker),
     index('idx_status_analysis').on(table.status),
+    index('idx_analyses_createdAt').on(table.createdAt),
   ]
 )
 
@@ -136,7 +149,7 @@ export const agentExecutions = pgTable(
   'agent_executions',
   {
     id: text('id').primaryKey(),
-    analysisId: text('analysisId').notNull(),
+    analysisId: text('analysisId').notNull().references(() => analyses.id, { onDelete: 'cascade' }),
     agentName: varchar('agentName', { length: 50 }).notNull(),
     agentType: varchar('agentType', { length: 50 }).notNull(), // 'planner', 'financial', 'news', 'competitor', 'bull', 'bear', 'judge', 'verifier'
     input: jsonb('input'),
@@ -146,9 +159,18 @@ export const agentExecutions = pgTable(
     sources: jsonb('sources'),
     executionTimeMs: integer('executionTimeMs'),
     tokenUsage: jsonb('tokenUsage'), // { input, output, total }
+    prompt: text('prompt'),
+    response: text('response'),
+    errors: text('errors'),
+    cost: real('cost'),
+    executionOrder: integer('executionOrder'),
     createdAt: timestamp('createdAt').notNull().defaultNow(),
   },
-  (table) => [index('idx_analysisId_agent').on(table.analysisId)]
+  (table) => [
+    index('idx_analysisId_agent').on(table.analysisId),
+    index('idx_agentExecutions_agentName').on(table.agentName),
+    index('idx_agentExecutions_agentType').on(table.agentType),
+  ]
 )
 
 // Source citations (each claim linked to sources)
@@ -156,7 +178,7 @@ export const sources = pgTable(
   'sources',
   {
     id: text('id').primaryKey(),
-    analysisId: text('analysisId').notNull(),
+    analysisId: text('analysisId').notNull().references(() => analyses.id, { onDelete: 'cascade' }),
     url: text('url').notNull(),
     title: text('title'),
     content: text('content'),
@@ -166,7 +188,9 @@ export const sources = pgTable(
     retrievedAt: timestamp('retrievedAt').notNull().defaultNow(),
     createdAt: timestamp('createdAt').notNull().defaultNow(),
   },
-  (table) => [index('idx_analysisId_sources').on(table.analysisId)]
+  (table) => [
+    index('idx_analysisId_sources').on(table.analysisId),
+  ]
 )
 
 // User portfolios (for portfolio-level features)
@@ -174,13 +198,15 @@ export const portfolios = pgTable(
   'portfolios',
   {
     id: text('id').primaryKey(),
-    userId: text('userId').notNull().unique(),
+    userId: text('userId').notNull().unique().references(() => user.id, { onDelete: 'cascade' }),
     name: text('name').notNull().default('My Portfolio'),
     description: text('description'),
     createdAt: timestamp('createdAt').notNull().defaultNow(),
     updatedAt: timestamp('updatedAt').notNull().defaultNow(),
   },
-  (table) => [index('idx_userId_portfolio').on(table.userId)]
+  (table) => [
+    index('idx_userId_portfolio').on(table.userId),
+  ]
 )
 
 // Portfolio holdings
@@ -188,8 +214,8 @@ export const holdings = pgTable(
   'holdings',
   {
     id: text('id').primaryKey(),
-    portfolioId: text('portfolioId').notNull(),
-    companyId: text('companyId').notNull(),
+    portfolioId: text('portfolioId').notNull().references(() => portfolios.id, { onDelete: 'cascade' }),
+    companyId: text('companyId').notNull().references(() => companies.id, { onDelete: 'cascade' }),
     ticker: varchar('ticker', { length: 20 }).notNull(),
     quantity: real('quantity').notNull(),
     averageCost: real('averageCost').notNull(),
@@ -210,7 +236,7 @@ export const backtests = pgTable(
   'backtests',
   {
     id: text('id').primaryKey(),
-    userId: text('userId').notNull(),
+    userId: text('userId').notNull().references(() => user.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     startDate: timestamp('startDate').notNull(),
     endDate: timestamp('endDate').notNull(),
@@ -220,7 +246,9 @@ export const backtests = pgTable(
     createdAt: timestamp('createdAt').notNull().defaultNow(),
     updatedAt: timestamp('updatedAt').notNull().defaultNow(),
   },
-  (table) => [index('idx_userId_backtest').on(table.userId)]
+  (table) => [
+    index('idx_userId_backtest').on(table.userId),
+  ]
 )
 
 // Watchlists
@@ -228,14 +256,16 @@ export const watchlists = pgTable(
   'watchlists',
   {
     id: text('id').primaryKey(),
-    userId: text('userId').notNull(),
+    userId: text('userId').notNull().references(() => user.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     description: text('description'),
     isDefault: boolean('isDefault').default(false),
     createdAt: timestamp('createdAt').notNull().defaultNow(),
     updatedAt: timestamp('updatedAt').notNull().defaultNow(),
   },
-  (table) => [index('idx_userId_watchlist').on(table.userId)]
+  (table) => [
+    index('idx_userId_watchlist').on(table.userId),
+  ]
 )
 
 // Watchlist items
@@ -243,8 +273,8 @@ export const watchlistItems = pgTable(
   'watchlist_items',
   {
     id: text('id').primaryKey(),
-    watchlistId: text('watchlistId').notNull(),
-    companyId: text('companyId').notNull(),
+    watchlistId: text('watchlistId').notNull().references(() => watchlists.id, { onDelete: 'cascade' }),
+    companyId: text('companyId').notNull().references(() => companies.id, { onDelete: 'cascade' }),
     ticker: varchar('ticker', { length: 20 }).notNull(),
     addedAt: timestamp('addedAt').notNull().defaultNow(),
   },
@@ -254,12 +284,12 @@ export const watchlistItems = pgTable(
   ]
 )
 
-// API usage tracking for billing
+// API usage tracking for quota and analytics
 export const apiUsage = pgTable(
   'api_usage',
   {
     id: text('id').primaryKey(),
-    userId: text('userId').notNull(),
+    userId: text('userId').notNull().references(() => user.id, { onDelete: 'cascade' }),
     date: timestamp('date').notNull().defaultNow(),
     analysesCount: integer('analysesCount').default(0),
     tokenUsage: integer('tokenUsage').default(0),
@@ -277,7 +307,7 @@ export const subscriptions = pgTable(
   'subscriptions',
   {
     id: text('id').primaryKey(),
-    userId: text('userId').notNull().unique(),
+    userId: text('userId').notNull().unique().references(() => user.id, { onDelete: 'cascade' }),
     plan: varchar('plan', { length: 20 }).notNull().default('free'), // 'free', 'pro', 'enterprise'
     stripeCustomerId: text('stripeCustomerId').unique(),
     stripeSubscriptionId: text('stripeSubscriptionId').unique(),
@@ -289,7 +319,9 @@ export const subscriptions = pgTable(
     createdAt: timestamp('createdAt').notNull().defaultNow(),
     updatedAt: timestamp('updatedAt').notNull().defaultNow(),
   },
-  (table) => [index('idx_userId_subscription').on(table.userId)]
+  (table) => [
+    index('idx_userId_subscription').on(table.userId),
+  ]
 )
 
 // Feedback and ratings
@@ -297,8 +329,8 @@ export const feedback = pgTable(
   'feedback',
   {
     id: text('id').primaryKey(),
-    userId: text('userId').notNull(),
-    analysisId: text('analysisId'),
+    userId: text('userId').notNull().references(() => user.id, { onDelete: 'cascade' }),
+    analysisId: text('analysisId').references(() => analyses.id, { onDelete: 'cascade' }),
     rating: integer('rating'), // 1-5
     comment: text('comment'),
     accuracy: varchar('accuracy', { length: 20 }), // 'very_accurate', 'accurate', 'partial', 'inaccurate'
