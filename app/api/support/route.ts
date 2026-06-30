@@ -6,7 +6,8 @@ import { v4 as uuidv4 } from 'uuid'
 import { checkDbConnection } from '@/lib/db'
 import nodemailer from 'nodemailer'
 
-const SUPPORT_EMAIL = 'tj1599509mail.com'
+const SUPPORT_EMAIL =
+  process.env.SUPPORT_TO ?? 'tj1455509@gmail.com'
 const SUPPORT_FROM = process.env.SUPPORT_FROM ?? 'no-reply@investiq.com'
 
 export const dynamic = 'force-dynamic'
