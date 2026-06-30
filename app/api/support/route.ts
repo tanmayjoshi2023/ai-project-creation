@@ -7,8 +7,9 @@ import { checkDbConnection } from '@/lib/db'
 import nodemailer from 'nodemailer'
 
 const SUPPORT_EMAIL =
-  process.env.SUPPORT_TO ?? 'tj1455509@gmail.com'
-const SUPPORT_FROM = process.env.SUPPORT_FROM ?? 'no-reply@investiq.com'
+  process.env.SUPPORT_TO ?? 'tj1599509@gmail.com'
+const SUPPORT_FROM =
+  process.env.SUPPORT_FROM ?? 'tj1599509@gmail.com'
 
 export const dynamic = 'force-dynamic'
 
