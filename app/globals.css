@@ -89,10 +89,33 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
 
-  /* InvestIQ Design Tokens - Light Mode */
+  /* Premium theme variations */
   --brand-navy: #1A3C5E;
   --brand-blue: #2563EB;
   --brand-gold: #C9A84C;
+
+  --premium-background: #fdf6ec;
+  --premium-foreground: #102a43;
+  --premium-card: #fff8ef;
+  --premium-border: #e3c78a;
+  --premium-input: #fcf1dc;
+  --premium-ring: #d7ad5d;
+  --premium-sidebar: #f8eedc;
+  --premium-sidebar-foreground: #102a43;
+  --premium-primary: #c18f15;
+  --premium-secondary: #b07b16;
+  --premium-muted: #f7e8cf;
+  --premium-muted-foreground: #6b4c1d;
+  --premium-chart-1: #f2d1a0;
+  --premium-chart-2: #d1a75a;
+  --premium-chart-3: #b78d3f;
+  --premium-chart-4: #8d6e2d;
+  --premium-chart-5: #6b531f;
+  --premium-popover: #fff7e8;
+  --premium-popover-foreground: #102a43;
+  --premium-card-foreground: #102a43;
+  --premium-accent: #c18f15;
+  --premium-accent-foreground: #ffffff;
   --verdict-success: #22C55E;
   --verdict-warning: #F59E0B;
   --verdict-error: #EF4444;
@@ -101,6 +124,87 @@
   --motion-duration-slow: 500ms;
   --motion-easing-out: cubic-bezier(0.34, 1.56, 0.64, 1);
   --motion-easing-in: cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+:root[data-theme='gold'] {
+  color-scheme: light;
+  --background: #fff6e7;
+  --foreground: #102a43;
+  --card: #fff8ef;
+  --card-foreground: #102a43;
+  --popover: #fff9f0;
+  --popover-foreground: #102a43;
+  --primary: #b77e0d;
+  --primary-foreground: #ffffff;
+  --secondary: #f5c469;
+  --secondary-foreground: #102a43;
+  --muted: #f7e2bb;
+  --muted-foreground: #6b4b1f;
+  --accent: #d5a13c;
+  --accent-foreground: #ffffff;
+  --border: #e3c78a;
+  --input: #fcf1dc;
+  --ring: #d7ad5d;
+  --chart-1: #f2d1a0;
+  --chart-2: #d1a75a;
+  --chart-3: #b78d3f;
+  --chart-4: #8d6e2d;
+  --chart-5: #6b531f;
+  --sidebar: #f8eedc;
+  --sidebar-foreground: #102a43;
+  --sidebar-primary: #b77e0d;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f5c469;
+  --sidebar-accent-foreground: #102a43;
+  --sidebar-border: #e3c78a;
+  --sidebar-ring: #d7ad5d;
+  --brand-navy: #1A3C5E;
+  --brand-blue: #2563EB;
+  --brand-gold: #C9A84C;
+  --verdict-success: #22C55E;
+  --verdict-warning: #F59E0B;
+  --verdict-error: #EF4444;
+}
+
+:root[data-theme='navy'] {
+  color-scheme: dark;
+  --background: #071727;
+  --foreground: #e6eef8;
+  --card: #0f2b44;
+  --card-foreground: #e6eef8;
+  --popover: #113050;
+  --popover-foreground: #e6eef8;
+  --primary: #4f78ff;
+  --primary-foreground: #ffffff;
+  --secondary: #95c3ff;
+  --secondary-foreground: #071727;
+  --muted: #1d3e62;
+  --muted-foreground: #c7d8ef;
+  --accent: #5fb0ff;
+  --accent-foreground: #071727;
+  --destructive: #fb7185;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.06);
+  --ring: #4f78ff;
+  --chart-1: #5fa2ff;
+  --chart-2: #4f78ff;
+  --chart-3: #2f5ebc;
+  --chart-4: #1d3b6d;
+  --chart-5: #12284c;
+  --sidebar: #0b2138;
+  --sidebar-foreground: #e6eef8;
+  --sidebar-primary: #4f78ff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #95c3ff;
+  --sidebar-accent-foreground: #071727;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #5fa2ff;
+  --brand-navy: #4f78ff;
+  --brand-blue: #95c3ff;
+  --brand-gold: #d9b24d;
+  --verdict-success: #4ade80;
+  --verdict-warning: #fbbf24;
+  --verdict-error: #f87171;
 }
 
 .dark {
@@ -147,7 +251,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not(.light) {
+  :root:not(.light):not([data-theme]) {
     color-scheme: dark;
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);

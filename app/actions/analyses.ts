@@ -171,6 +171,8 @@ export async function persistAnalysisResults(
       })
       .where(and(eq(analyses.userId, userId), eq(analyses.id, analysisId)))
 
+    await tx.delete(agentExecutions).where(eq(agentExecutions.analysisId, analysisId))
+
     for (let i = 0; i < state.agents.length; i++) {
       const agent = state.agents[i]
       await tx.insert(agentExecutions).values({

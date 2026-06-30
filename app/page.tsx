@@ -52,6 +52,9 @@ export default async function HomePage() {
           </div>
           <div className="flex items-center gap-3">
             <Button variant="ghost" nativeButton={false} render={
+              <Link href="/pricing">Pricing</Link>
+            } />
+            <Button variant="ghost" nativeButton={false} render={
               <Link href="/sign-in">Sign In</Link>
             } />
             <Button nativeButton={false} render={
@@ -214,9 +217,9 @@ export default async function HomePage() {
                   </a>
                 </li>
                 <li>
-                  <a href="#contact" className="text-muted-foreground hover:text-primary transition-colors duration-200 font-medium">
-                    Contact
-                  </a>
+                  <Link href="/support" className="text-muted-foreground hover:text-primary transition-colors duration-200 font-medium">
+                    Support
+                  </Link>
                 </li>
               </ul>
             </div>

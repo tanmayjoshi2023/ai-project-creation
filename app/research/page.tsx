@@ -85,7 +85,7 @@ export default async function ResearchPage() {
           </Card>
         </div>
 
-        <Card className="border-brand-blue/20 bg-gradient-to-r from-brand-blue/5 to-brand-gold/5">
+        <Card className="border-brand-blue/20 bg-linear-to-r from-brand-blue/5 to-brand-gold/5">
           <CardContent className="pt-6 text-center space-y-4">
             <h2 className="text-2xl font-bold text-foreground">Start Your Analysis</h2>
             <p className="text-muted-foreground max-w-lg mx-auto">

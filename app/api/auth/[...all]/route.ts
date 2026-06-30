@@ -5,7 +5,7 @@ import { checkDbConnection } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
-const nextJsHandler = toNextJsHandler(auth.handler)
+const authHandler = toNextJsHandler(auth)
 
 export async function GET(request: NextRequest) {
   if (!(await checkDbConnection())) {
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-  return nextJsHandler.GET(request)
+  return authHandler.GET(request)
 }
 
 export async function POST(request: NextRequest) {
@@ -24,5 +24,5 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-  return nextJsHandler.POST(request)
+  return authHandler.POST(request)
 }

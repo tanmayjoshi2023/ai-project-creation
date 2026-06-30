@@ -13,13 +13,33 @@ export async function bearNode(state: InvestmentAnalysisState): Promise<Partial<
 
   const fallback = () => ({
     points: [
-      { point: `Risk score of ${state.riskScore}/100 signals elevated operational and market downside for ${state.companyName} [source: 2]`, sourceIndex: 2, severity: 4 },
-      { point: `${state.companyName}'s current valuation premium leaves little margin for error relative to ${state.sector} sector peers [source: 1]`, sourceIndex: 1, severity: 3 },
-      { point: `Intensifying competition from rivals poses potential threats to ${state.companyName}'s long-term market share [source: 3]`, sourceIndex: 3, severity: 4 },
-      { point: `Sentiment score of ${state.sentimentScore}/100 suggests that optimism for ${state.ticker} may have peaked [source: 2]`, sourceIndex: 2, severity: 3 },
-      { point: `Macro headwinds and regulatory shifts in the ${state.sector} industry could impact ${state.companyName}'s projected margins [source: 2]`, sourceIndex: 2, severity: 3 },
+      {
+        point: `A risk score of ${state.riskScore}/100 indicates this company may be sensitive to macro or execution risk, especially given its ${state.sector} exposure [source: 2]`,
+        sourceIndex: 2,
+        severity: 5,
+      },
+      {
+        point: `If ${state.companyName} is priced for perfection, any earnings miss or slowdown would reduce upside sharply [source: 1]`,
+        sourceIndex: 1,
+        severity: 4,
+      },
+      {
+        point: `Competitive pressure from peers could erode margins and market share unless the company maintains a clear advantage [source: 3]`,
+        sourceIndex: 3,
+        severity: 4,
+      },
+      {
+        point: `Sentiment strength of ${state.sentimentScore}/100 may have already priced in positive growth assumptions, leaving limited downside protection [source: 2]`,
+        sourceIndex: 2,
+        severity: 3,
+      },
+      {
+        point: `Under ${state.riskTolerance} risk preferences, the current profile looks more suited to Hold or Pass until evidence of durable growth is clearer [source: 2]`,
+        sourceIndex: 2,
+        severity: 3,
+      },
     ],
-    bearConfidence: Math.min(85, 100 - state.compositeScore),
+    bearConfidence: Math.min(90, Math.max(50, 100 - state.compositeScore)),
   })
 
   const result = await callStructuredLLM(

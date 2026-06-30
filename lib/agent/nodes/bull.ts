@@ -13,13 +13,33 @@ export async function bullNode(state: InvestmentAnalysisState): Promise<Partial<
 
   const fallback = () => ({
     points: [
-      { point: `${state.companyName} (${state.ticker}) shows strong balance sheet health, supported by a financial score of ${state.financialScore}/100 [source: 1]`, sourceIndex: 1, specificity: 4 },
-      { point: `${state.companyName}'s competitive moat score of ${state.competitionScore}/100 indicates a dominant position in the ${state.sector} market [source: 3]`, sourceIndex: 3, specificity: 4 },
-      { point: `Positive recent news sentiment for ${state.ticker} is tracking at ${state.sentimentScore}/100, signaling optimistic demand [source: 2]`, sourceIndex: 2, specificity: 3 },
-      { point: `${state.companyName} demonstrates robust gross margins and revenue growth potential in its core ${state.sector} segments [source: 1]`, sourceIndex: 1, specificity: 3 },
-      { point: `Overall investment analysis score for ${state.companyName} (${state.compositeScore}/100) indicates growth upside [source: 1]`, sourceIndex: 1, specificity: 4 },
+      {
+        point: `${state.companyName} (${state.ticker}) appears positioned for growth with a financial score of ${state.financialScore}/100 and healthy gross margin trends in the ${state.sector} sector [source: 1]`,
+        sourceIndex: 1,
+        specificity: 5,
+      },
+      {
+        point: `Recent sentiment and news coverage are generally positive, supporting demand momentum for ${state.companyName} even if broader market risk remains [source: 2]`,
+        sourceIndex: 2,
+        specificity: 4,
+      },
+      {
+        point: `${state.companyName} benefits from competitive strength in ${state.sector}, which helps sustain pricing power and guard market share [source: 3]`,
+        sourceIndex: 3,
+        specificity: 4,
+      },
+      {
+        point: `The current score profile suggests this is a company with above-average operational quality and growth optionality in the near term [source: 1]`,
+        sourceIndex: 1,
+        specificity: 3,
+      },
+      {
+        point: `Under a ${state.riskTolerance} risk tolerance, the upside thesis is supported by stable free cash flow and manageable leverage [source: 1]`,
+        sourceIndex: 1,
+        specificity: 3,
+      },
     ],
-    bullConfidence: Math.min(90, state.compositeScore),
+    bullConfidence: Math.min(95, Math.max(55, state.compositeScore)),
   })
 
   const result = await callStructuredLLM(

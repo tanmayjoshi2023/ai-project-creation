@@ -3,7 +3,7 @@ import { subscriptions } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { v4 as uuidv4 } from 'uuid'
 
-const FREE_TIER_LIMIT = 3
+const FREE_TIER_LIMIT = 5
 const PRO_TIER_LIMIT = 9999
 
 export async function ensureSubscription(userId: string, tx?: any) {

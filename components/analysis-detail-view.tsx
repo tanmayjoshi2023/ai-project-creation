@@ -12,7 +12,8 @@ import { ExplainabilityPanelComponent } from '@/components/explainability-panel'
 import { Disclaimer } from '@/components/disclaimer'
 import type { ExplainabilityPanel, Verdict } from '@/lib/agent/types'
 import { Button } from '@/components/ui/button'
-import { Download } from 'lucide-react'
+import { downloadReportAsCsv, downloadReportAsJson, downloadReportAsPdf, downloadReportAsText } from '@/lib/report-export'
+import { Download, FileText, FileSpreadsheet, FilePdf, Code2 } from 'lucide-react'
 
 interface AgentExecution {
   id: string
@@ -61,26 +62,34 @@ export function AnalysisDetailView({ analysis, companyName }: AnalysisDetailView
     }
   }, [analysis.reasoning])
 
+  const uniqueAgentExecutions = useMemo(() => {
+    const agentMap = new Map<string, AgentExecution>()
+    for (const exec of analysis.agents || []) {
+      agentMap.set(exec.agentName, exec)
+    }
+    return Array.from(agentMap.values())
+  }, [analysis.agents])
+
   const agentNodes = useMemo(
     () =>
-      (analysis.agents || []).map((exec) => ({
+      uniqueAgentExecutions.map((exec) => ({
         name: exec.agentName,
         status: 'complete' as const,
         duration: exec.executionTimeMs ?? undefined,
       })),
-    [analysis.agents]
+    [uniqueAgentExecutions]
   )
 
   const thoughts = useMemo(
     () =>
-      (analysis.agents || []).map((exec, idx) => ({
+      uniqueAgentExecutions.map((exec, idx) => ({
         id: `${exec.agentName}-${idx}`,
         agent: exec.agentName,
         type: 'research' as const,
         content: exec.output || 'No output',
         timestamp: new Date(exec.createdAt),
       })),
-    [analysis.agents]
+    [uniqueAgentExecutions]
   )
 
   const bullish = useMemo(() => {
@@ -131,6 +140,19 @@ export function AnalysisDetailView({ analysis, companyName }: AnalysisDetailView
     }))
   }, [bearish])
 
+  const exportPayload = {
+    ticker: analysis.ticker,
+    companyName,
+    verdict: analysis.verdict ?? null,
+    confidence: analysis.confidence ?? null,
+    summary: analysis.summary ?? null,
+    bullArguments: analysis.bullArguments ?? null,
+    bearArguments: analysis.bearArguments ?? null,
+    riskScore: analysis.riskScore ?? null,
+    opportunityScore: analysis.opportunityScore ?? null,
+    createdAt: analysis.createdAt,
+  }
+
   const citationsForDebate = useMemo(() => {
     return (explainability?.sources || []).map((s) => ({
       title: s.title,
@@ -169,7 +191,7 @@ export function AnalysisDetailView({ analysis, companyName }: AnalysisDetailView
           {companyName && <p className="text-lg text-muted-foreground">{companyName}</p>}
         </div>
 
-        <div className="flex items-center gap-3 no-print">
+        <div className="flex flex-wrap items-center gap-3 no-print">
           {/* View Mode Toggle */}
           <div className="inline-flex rounded-lg border border-border p-1 bg-muted/40">
             <button
@@ -201,7 +223,43 @@ export function AnalysisDetailView({ analysis, companyName }: AnalysisDetailView
             onClick={() => window.print()}
           >
             <Download className="h-4 w-4" />
-            <span>Export Report</span>
+            <span>Print</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 h-9 border-muted"
+            onClick={() => downloadReportAsText(exportPayload)}
+          >
+            <FileText className="h-4 w-4" />
+            <span>TXT</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 h-9 border-muted"
+            onClick={() => downloadReportAsCsv(exportPayload)}
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            <span>CSV</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 h-9 border-muted"
+            onClick={() => downloadReportAsPdf(exportPayload)}
+          >
+            <FilePdf className="h-4 w-4" />
+            <span>PDF</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 h-9 border-muted"
+            onClick={() => downloadReportAsJson(exportPayload)}
+          >
+            <Code2 className="h-4 w-4" />
+            <span>JSON</span>
           </Button>
         </div>
       </div>

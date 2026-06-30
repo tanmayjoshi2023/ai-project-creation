@@ -87,7 +87,7 @@ export function AnalyzeForm({ ticker, company }: AnalyzeFormProps) {
 
             {error && (
               <div className="flex gap-3 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800 dark:bg-red-950/20 dark:border-red-900 dark:text-red-200">
-                <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
                 <p>{error}</p>
               </div>
             )}

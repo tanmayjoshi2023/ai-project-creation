@@ -55,7 +55,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-background to-muted/50 p-4">
+    <div className="flex items-center justify-center min-h-screen bg-linear-to-br from-background to-muted/50 p-4">
       <div className="w-full max-w-md space-y-4">
         <Link
           href="/"
@@ -66,7 +66,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       <Card className="w-full shadow-xl">
         <CardHeader className="space-y-3 pb-6">
           <div className="space-y-2">
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+            <CardTitle className="text-3xl font-bold bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent">
               InvestIQ
             </CardTitle>
             <h2 className="text-xl font-semibold text-foreground">
@@ -132,14 +132,14 @@ export function AuthForm({ mode }: AuthFormProps) {
 
             {error && (
               <div className="flex items-start gap-3 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+                <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
                 <div className="text-sm text-destructive font-medium">{error}</div>
               </div>
             )}
 
             {success && (
               <div className="flex items-start gap-3 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-                <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
                 <div className="text-sm text-green-600 font-medium">
                   {mode === 'sign-up' ? 'Account created! Redirecting...' : 'Signed in successfully! Redirecting...'}
                 </div>

@@ -124,7 +124,7 @@ export function CompareClient() {
               onClick={handleCompare}
               disabled={!comp1 || !comp2 || isLoading}
               size="lg"
-              className="gap-2 px-8 min-w-[200px]"
+              className="gap-2 px-8 min-w-50"
             >
               {isLoading ? (
                 <>
@@ -142,7 +142,7 @@ export function CompareClient() {
 
           {error && (
             <div className="mt-6 p-4 rounded-lg bg-red-50 border border-red-200 dark:bg-red-950/20 dark:border-red-900 text-sm text-red-800 dark:text-red-200 flex gap-2">
-              <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+              <AlertTriangle className="h-5 w-5 shrink-0" />
               <p>{error}</p>
             </div>
           )}
@@ -168,7 +168,7 @@ export function CompareClient() {
             
             {/* Stock 1 Verdict */}
             <Card className="overflow-hidden border border-border shadow-md">
-              <div className="p-6 bg-gradient-to-b from-muted/30 to-transparent flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/50">
+              <div className="p-6 bg-linear-to-b from-muted/30 to-transparent flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/50">
                 <div>
                   <h3 className="text-2xl font-bold text-foreground">{compareData.company1.ticker}</h3>
                   <p className="text-sm text-muted-foreground">{compareData.company1.name}</p>
@@ -193,7 +193,7 @@ export function CompareClient() {
 
             {/* Stock 2 Verdict */}
             <Card className="overflow-hidden border border-border shadow-md">
-              <div className="p-6 bg-gradient-to-b from-muted/30 to-transparent flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/50">
+              <div className="p-6 bg-linear-to-b from-muted/30 to-transparent flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/50">
                 <div>
                   <h3 className="text-2xl font-bold text-foreground">{compareData.company2.ticker}</h3>
                   <p className="text-sm text-muted-foreground">{compareData.company2.name}</p>
@@ -277,10 +277,10 @@ export function CompareClient() {
                   </tr>
                   <tr>
                     <td className="py-3.5 px-4 font-medium text-foreground">Risk Score (Inverted)</td>
-                    <td className="py-3.5 px-4 text-center text-foreground text-red-600 dark:text-red-400 font-semibold">
+                    <td className="py-3.5 px-4 text-center text-red-600 dark:text-red-400 font-semibold">
                       {compareData.company1.analysis?.riskScore ?? '—'}/100
                     </td>
-                    <td className="py-3.5 px-4 text-center text-foreground text-red-600 dark:text-red-400 font-semibold">
+                    <td className="py-3.5 px-4 text-center text-red-600 dark:text-red-400 font-semibold">
                       {compareData.company2.analysis?.riskScore ?? '—'}/100
                     </td>
                   </tr>

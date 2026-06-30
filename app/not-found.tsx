@@ -8,7 +8,7 @@ export default function NotFound() {
       <header className="border-b">
         <div className="container mx-auto max-w-6xl px-4 py-4">
           <Link href="/" className="flex items-center gap-2 w-fit hover:opacity-80 transition-opacity">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
+            <div className="h-8 w-8 rounded-lg bg-linear-to-br from-primary to-primary/70 flex items-center justify-center">
               <TrendingUp className="w-4 h-4 text-primary-foreground" />
             </div>
             <span className="text-xl font-bold">InvestIQ</span>

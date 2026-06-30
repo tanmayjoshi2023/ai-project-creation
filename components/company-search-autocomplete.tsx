@@ -152,12 +152,12 @@ export function CompanySearchAutocomplete({
                 idx === selectedIndex ? 'bg-muted' : ''
               } ${idx === results.length - 1 ? 'border-b-0' : ''}`}
             >
-              <TrendingUp className="w-4 h-4 text-brand-blue flex-shrink-0" />
-              <div className="flex-grow min-w-0">
+              <TrendingUp className="w-4 h-4 text-brand-blue shrink-0" />
+              <div className="grow min-w-0">
                 <p className="font-semibold text-foreground truncate">{company.symbol}</p>
                 <p className="text-xs text-muted-foreground truncate">{company.name}</p>
               </div>
-              <span className="text-xs text-muted-foreground flex-shrink-0">{company.region}</span>
+              <span className="text-xs text-muted-foreground shrink-0">{company.region}</span>
             </button>
           ))}
         </Card>

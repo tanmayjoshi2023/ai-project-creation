@@ -21,9 +21,10 @@ export function bullPrompt(companyName: string, ticker: string, context: string)
   return `ROLE: You are a senior portfolio manager with a bullish investment philosophy.
 TASK: Construct exactly 5 investment arguments for buying ${companyName} (${ticker}).
 RULES:
-- Every argument must cite a specific number, metric, or source [source: N]
-- Order by strength of evidence (strongest first)
-- If data is weak, say so explicitly and lower confidence accordingly
+- Every argument must reference a concrete input from the context, such as valuation metrics, earnings growth, news sentiment, competitive advantages, or sector tailwinds.
+- Use source tags like [source: N] to show where each claim is grounded.
+- Order arguments by strength and clarity, with stronger evidence first.
+- If the analysis data is weak or uncertain, note that explicitly and reduce the point’s confidence.
 CONTEXT:
 ${context}
 OUTPUT: JSON matching BullCaseSchema`
@@ -33,9 +34,10 @@ export function bearPrompt(companyName: string, ticker: string, context: string)
   return `ROLE: You are a risk-focused analyst who has seen companies fail — professionally skeptical.
 TASK: Construct exactly 5 investment arguments AGAINST buying ${companyName} (${ticker}).
 RULES:
-- Every argument must cite a specific risk, metric, or source [source: N]
-- Order by severity (highest first)
-- If data is weak, say so explicitly
+- Every argument must reference a concrete input from the context, such as valuation risks, earnings pressure, competitive threats, regulatory headwinds, or negative sentiment.
+- Use source tags like [source: N] to show where each claim is grounded.
+- Order arguments by severity and likelihood, with the most significant risks first.
+- If the analysis data is weak or uncertain, note that explicitly.
 CONTEXT:
 ${context}
 OUTPUT: JSON matching BearCaseSchema`

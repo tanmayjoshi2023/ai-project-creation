@@ -1,5 +1,13 @@
 import type { FinancialMetrics, RiskTolerance, ScoreBreakdown, Verdict } from './types'
 
+export interface ScoreContext {
+  metrics?: FinancialMetrics | null
+  newsArticles?: Array<{ sentiment?: number | null; relevanceScore?: number | null }> | null
+  competitorData?: Array<{ threatLevel?: number | null }> | null
+  sector?: string
+  riskTolerance?: RiskTolerance
+}
+
 const WEIGHTS = {
   financial: 0.3,
   market: 0.2,
@@ -14,37 +22,54 @@ function clamp(value: number, min = 0, max = 100): number {
 
 function scorePe(pe: number | null): number {
   if (pe === null) return 50
-  if (pe < 15) return 100
-  if (pe > 40) return 20
-  return clamp(100 - ((pe - 15) / 25) * 80)
+  if (pe < 12) return 100
+  if (pe > 35) return 20
+  return clamp(100 - ((pe - 12) / 23) * 80)
 }
 
 function scoreGrowth(growth: number | null): number {
   if (growth === null) return 50
-  if (growth > 0.2) return 100
-  if (growth < 0) return 0
-  return clamp(growth * 500)
+  if (growth > 0.18) return 100
+  if (growth < -0.05) return 0
+  return clamp(50 + growth * 500)
 }
 
 function scoreDebt(debt: number | null): number {
   if (debt === null) return 50
-  if (debt < 0.3) return 100
-  if (debt > 3) return 0
-  return clamp(100 - ((debt - 0.3) / 2.7) * 100)
+  if (debt < 0.35) return 100
+  if (debt > 2.5) return 0
+  return clamp(100 - ((debt - 0.35) / 2.15) * 100)
 }
 
 function scoreMargin(margin: number | null): number {
   if (margin === null) return 50
-  if (margin > 0.6) return 100
-  if (margin < 0.1) return 0
-  return clamp(((margin - 0.1) / 0.5) * 100)
+  if (margin > 0.45) return 100
+  if (margin < 0.08) return 0
+  return clamp(((margin - 0.08) / 0.37) * 100)
 }
 
 function scoreFcfYield(fcf: number | null): number {
   if (fcf === null) return 50
-  if (fcf > 0.05) return 100
+  if (fcf > 0.04) return 100
   if (fcf < 0) return 0
-  return clamp(fcf * 2000)
+  return clamp(fcf * 2500)
+}
+
+function scoreNewsSentiment(newsArticles?: Array<{ sentiment?: number | null; relevanceScore?: number | null }> | null): number {
+  if (!newsArticles || newsArticles.length === 0) return 50
+  const weighted = newsArticles.reduce((sum, article) => {
+    const relevance = article.relevanceScore ?? 0.5
+    const sentiment = article.sentiment ?? 0
+    return sum + sentiment * relevance
+  }, 0)
+  const average = weighted / newsArticles.length
+  return clamp(Math.round(50 + average * 40))
+}
+
+function scoreCompetition(competitorData?: Array<{ threatLevel?: number | null }> | null): number {
+  if (!competitorData || competitorData.length === 0) return 55
+  const averageThreat = competitorData.reduce((sum, item) => sum + (item.threatLevel ?? 0.5), 0) / competitorData.length
+  return clamp(Math.round(100 - averageThreat * 30))
 }
 
 export function calculateFinancialScore(metrics: FinancialMetrics): number {
@@ -97,14 +122,17 @@ export function getMockFinancialMetrics(ticker: string): FinancialMetrics {
   }
 }
 
-export function buildScoreBreakdown(ticker: string, sector?: string): ScoreBreakdown {
-  const metrics = getMockFinancialMetrics(ticker)
+export function buildScoreBreakdown(ticker: string, sector?: string, context?: ScoreContext): ScoreBreakdown {
+  const metrics = context?.metrics ?? getMockFinancialMetrics(ticker)
   const financial = calculateFinancialScore(metrics)
   const sectorBoost = sector?.toLowerCase().includes('tech') ? 8 : 0
-  const market = clamp(financial + sectorBoost - 5)
-  const sentiment = clamp(55 + (ticker.charCodeAt(0) % 30))
-  const competition = clamp(50 + (ticker.length * 3))
-  const risk = clamp(100 - financial * 0.4)
+  const newsScore = scoreNewsSentiment(context?.newsArticles)
+  const competitionScore = scoreCompetition(context?.competitorData)
+  const riskPressure = (metrics.debtToEquity ?? 0.5) * 24 + (newsScore < 50 ? 12 : 0)
+  const market = clamp(Math.round(financial * 0.55 + newsScore * 0.25 + sectorBoost * 0.2 + 5))
+  const sentiment = clamp(Math.round(newsScore * 0.75 + (metrics.revenueGrowthYoY ?? 0) * 55 + 10))
+  const competition = clamp(Math.round(competitionScore * 0.85 + (sectorBoost > 0 ? 6 : 0)))
+  const risk = clamp(Math.round(100 - financial * 0.3 - riskPressure))
   return calculateCompositeScore({ financial, market, sentiment, competition, risk })
 }
 

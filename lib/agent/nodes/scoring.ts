@@ -1,5 +1,5 @@
 import type { InvestmentAnalysisState } from '@/lib/agent/state'
-import { calculateFinancialScore, calculateCompositeScore, WEIGHTS } from '@/lib/agent/scoring'
+import { buildScoreBreakdown, calculateCompositeScore, WEIGHTS } from '@/lib/agent/scoring'
 import type { ExplainabilityPanel } from '@/lib/agent/types'
 import { makeAgentOutput, makeThought, stateInput } from './helpers'
 import { emitThought } from '@/lib/agent/event-bus'
@@ -10,14 +10,13 @@ export async function scoringNode(state: InvestmentAnalysisState): Promise<Parti
   emitThought(state.analysisId, 'Scoring Engine', 'running', 'Computing deterministic scores...')
   const input = stateInput(state)
 
-  const metrics = state.financialMetrics
-  const financial = metrics ? calculateFinancialScore(metrics) : 50
-  const market = Math.max(0, Math.min(100, Math.round((financial + (state.competitionScore || 50)) / 2)))
-  const sentiment = state.sentimentScore || 55
-  const competition = state.competitionScore || 50
-  const risk = Math.round(100 - financial * 0.4)
-
-  const scores = calculateCompositeScore({ financial, market, sentiment, competition, risk })
+  const scores = buildScoreBreakdown(state.ticker, state.sector, {
+    metrics: state.financialMetrics,
+    newsArticles: state.newsArticles,
+    competitorData: state.competitorData,
+    sector: state.sector,
+    riskTolerance: state.riskTolerance,
+  })
 
   const explainability: ExplainabilityPanel = {
     weights: {

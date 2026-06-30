@@ -9,7 +9,9 @@ import { ExplainabilityPanelComponent } from '@/components/explainability-panel'
 import { ReasoningList } from '@/components/reasoning-list'
 import { Disclaimer } from '@/components/disclaimer'
 import { Card } from '@/components/ui/card'
-import { AlertCircle, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { AlertCircle, Loader2, Download, FileText, FileSpreadsheet, FilePdf, Code2 } from 'lucide-react'
+import { downloadReportAsCsv, downloadReportAsJson, downloadReportAsPdf, downloadReportAsText } from '@/lib/report-export'
 import type { ExplainabilityPanel, Verdict } from '@/lib/agent/types'
 
 interface StreamingAnalysisProps {
@@ -240,7 +242,7 @@ export function StreamingAnalysis({
 
       {error && (
         <Card className="p-4 border-red-200 bg-red-50 dark:bg-red-950/20 flex gap-3">
-          <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
+          <AlertCircle className="h-5 w-5 text-red-600 shrink-0" />
           <div>
             <p className="font-medium text-red-800 dark:text-red-200">{error}</p>
             <button
@@ -264,6 +266,108 @@ export function StreamingAnalysis({
       )}
 
       <AgentProgressBar agents={agentProgress} />
+
+      {result && (
+        <div className="flex flex-wrap items-center gap-3 no-print">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 h-9 border-muted"
+            onClick={() => window.print()}
+          >
+            <Download className="h-4 w-4" />
+            <span>Print</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 h-9 border-muted"
+            onClick={() =>
+              downloadReportAsText({
+                ticker: currentTicker,
+                companyName: currentCompanyName,
+                verdict: result.verdict,
+                confidence: result.confidence,
+                summary: result.summary,
+                bullArguments: result.bullArguments,
+                bearArguments: result.bearArguments,
+                riskScore: result.riskScore ?? null,
+                opportunityScore: null,
+                createdAt: new Date().toISOString(),
+              })
+            }
+          >
+            <FileText className="h-4 w-4" />
+            <span>TXT</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 h-9 border-muted"
+            onClick={() =>
+              downloadReportAsCsv({
+                ticker: currentTicker,
+                companyName: currentCompanyName,
+                verdict: result.verdict,
+                confidence: result.confidence,
+                summary: result.summary,
+                bullArguments: result.bullArguments,
+                bearArguments: result.bearArguments,
+                riskScore: result.riskScore ?? null,
+                opportunityScore: null,
+                createdAt: new Date().toISOString(),
+              })
+            }
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            <span>CSV</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 h-9 border-muted"
+            onClick={() =>
+              downloadReportAsPdf({
+                ticker: currentTicker,
+                companyName: currentCompanyName,
+                verdict: result.verdict,
+                confidence: result.confidence,
+                summary: result.summary,
+                bullArguments: result.bullArguments,
+                bearArguments: result.bearArguments,
+                riskScore: result.riskScore ?? null,
+                opportunityScore: null,
+                createdAt: new Date().toISOString(),
+              })
+            }
+          >
+            <FilePdf className="h-4 w-4" />
+            <span>PDF</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 h-9 border-muted"
+            onClick={() =>
+              downloadReportAsJson({
+                ticker: currentTicker,
+                companyName: currentCompanyName,
+                verdict: result.verdict,
+                confidence: result.confidence,
+                summary: result.summary,
+                bullArguments: result.bullArguments,
+                bearArguments: result.bearArguments,
+                riskScore: result.riskScore ?? null,
+                opportunityScore: null,
+                createdAt: new Date().toISOString(),
+              })
+            }
+          >
+            <Code2 className="h-4 w-4" />
+            <span>JSON</span>
+          </Button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">

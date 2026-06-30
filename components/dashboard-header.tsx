@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { authClient } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { ThemeSelector } from '@/components/theme-selector'
 import { TrendingUp } from 'lucide-react'
 
 interface User {
@@ -22,6 +23,8 @@ const navLinks = [
   { href: '/', label: 'Dashboard' },
   { href: '/compare', label: 'Compare' },
   { href: '/research', label: 'Research' },
+  { href: '/pricing', label: 'Pricing' },
+  { href: '/support', label: 'Support' },
 ]
 
 export function DashboardHeader({ user }: DashboardHeaderProps) {
@@ -37,12 +40,12 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
   }
 
   return (
-    <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+    <header className="border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 sticky top-0 z-50">
       <div className="container mx-auto max-w-6xl px-4 py-4">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-6">
             <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
+              <div className="h-8 w-8 rounded-lg bg-linear-to-br from-primary to-primary/70 flex items-center justify-center">
                 <TrendingUp className="w-4 h-4 text-primary-foreground" />
               </div>
               <span className="text-xl font-bold hidden sm:inline">InvestIQ</span>
@@ -62,6 +65,10 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
             </nav>
           </div>
 
+          <div className="hidden md:flex items-center gap-2">
+            <ThemeSelector />
+          </div>
+
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
@@ -71,7 +78,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
                       {(user.name || user.email).charAt(0).toUpperCase()}
                     </span>
                   </div>
-                  <span className="hidden sm:inline text-sm max-w-[160px] truncate">
+                  <span className="hidden sm:inline text-sm max-w-40 truncate">
                     {user.name || user.email}
                   </span>
                 </Button>
@@ -84,6 +91,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
               <DropdownMenuItem className="md:hidden" render={<Link href="/">Dashboard</Link>} />
               <DropdownMenuItem className="md:hidden" render={<Link href="/compare">Compare</Link>} />
               <DropdownMenuItem className="md:hidden" render={<Link href="/research">Research</Link>} />
+              <DropdownMenuItem className="md:hidden" render={<Link href="/pricing">Pricing</Link>} />
               <DropdownMenuItem onClick={handleLogout}>Sign out</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
