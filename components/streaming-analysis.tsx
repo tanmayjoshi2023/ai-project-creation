@@ -10,7 +10,7 @@ import { ReasoningList } from '@/components/reasoning-list'
 import { Disclaimer } from '@/components/disclaimer'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { AlertCircle, Loader2, Download, FileText, FileSpreadsheet, FilePdf, Code2 } from 'lucide-react'
+import { AlertCircle, Loader2, Download, FileText, FileSpreadsheet, File, Code2 } from 'lucide-react'
 import { downloadReportAsCsv, downloadReportAsJson, downloadReportAsPdf, downloadReportAsText } from '@/lib/report-export'
 import type { ExplainabilityPanel, Verdict } from '@/lib/agent/types'
 
@@ -341,7 +341,7 @@ export function StreamingAnalysis({
               })
             }
           >
-            <FilePdf className="h-4 w-4" />
+            <File className="h-4 w-4" />
             <span>PDF</span>
           </Button>
           <Button

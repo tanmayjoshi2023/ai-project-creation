@@ -13,7 +13,7 @@ import { Disclaimer } from '@/components/disclaimer'
 import type { ExplainabilityPanel, Verdict } from '@/lib/agent/types'
 import { Button } from '@/components/ui/button'
 import { downloadReportAsCsv, downloadReportAsJson, downloadReportAsPdf, downloadReportAsText } from '@/lib/report-export'
-import { Download, FileText, FileSpreadsheet, FilePdf, Code2 } from 'lucide-react'
+import { Download, FileText, FileSpreadsheet, File, Code2 } from 'lucide-react'
 
 interface AgentExecution {
   id: string
@@ -249,7 +249,7 @@ export function AnalysisDetailView({ analysis, companyName }: AnalysisDetailView
             className="gap-2 h-9 border-muted"
             onClick={() => downloadReportAsPdf(exportPayload)}
           >
-            <FilePdf className="h-4 w-4" />
+            <File className="h-4 w-4" />
             <span>PDF</span>
           </Button>
           <Button
